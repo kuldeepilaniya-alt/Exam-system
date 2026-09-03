@@ -1,0 +1,8 @@
+{
+  "name": "Student Marks & Result Management",
+  "description": "Student marks sheet management system for Govt. Sr. Sec. School, Sanwaloda Purohitan, Sikar under Principal Narendra Singh Chauhan, with class rankings, marks entry, and Google Sheets synchronization across Class 10, 8, 12A, 12B, and 12C.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
