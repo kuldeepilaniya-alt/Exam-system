@@ -115,7 +115,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               Student Result Portal
             </h1>
             <p className="mt-2 text-sm text-slate-500 leading-relaxed">
-              Enter the student&apos;s registered Roll Number to view complete subject-wise marks, percentage, and official class rank.
+              Enter Student Roll Number to view subject-wise marks, percentage, and Class rank.
             </p>
 
             {/* Search Input Form */}
@@ -142,28 +142,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 <ChevronRight className="h-4 w-4" />
               </button>
             </form>
-
-            {/* Quick Demo Roll Number Badges */}
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-1.5 text-xs text-slate-500">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Sample Records:
-              </span>
-              {students.slice(0, 6).map((s) => (
-                <button
-                  key={s.rollNo}
-                  type="button"
-                  id={`sample-roll-${s.rollNo}`}
-                  onClick={() => handleSampleClick(s.rollNo)}
-                  className={`rounded-lg border px-2.5 py-1 font-mono text-xs font-bold transition ${
-                    searchedRoll === s.rollNo
-                      ? 'border-emerald-500 bg-emerald-50 text-emerald-700 shadow-xs'
-                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300 hover:bg-white'
-                  }`}
-                >
-                  #{s.rollNo} ({s.name.split(' ')[0]})
-                </button>
-              ))}
-            </div>
           </div>
         </div>
       </section>
@@ -401,13 +379,13 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 <div className="mt-8 grid grid-cols-3 gap-6 pt-6 border-t border-slate-200 text-center">
                   <div>
                     <div className="h-10 border-b border-dashed border-slate-300 flex items-end justify-center pb-1">
-                      <span className="font-serif italic text-xs text-slate-600">R. Malhotra</span>
+                      <span className="font-serif italic text-xs text-slate-600">_____</span>
                     </div>
                     <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">Class Teacher</div>
                   </div>
                   <div>
                     <div className="h-10 border-b border-dashed border-slate-300 flex items-end justify-center pb-1">
-                      <span className="font-serif italic text-xs text-slate-600">Exam Cell Incharge</span>
+                      <span className="font-serif italic text-xs text-slate-600">Kapil Dev Sir</span>
                     </div>
                     <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">Controller of Exams</div>
                   </div>

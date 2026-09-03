@@ -696,17 +696,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Update Data & Auto Sync Button */}
-            <button
-              type="button"
-              id="update-data-auto-sync-btn"
-              onClick={handleUpdateDataAndAutoSync}
-              disabled={isAutoSyncing}
-              className="flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-md shadow-emerald-950/40 active:scale-95 transition disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${isAutoSyncing ? 'animate-spin' : ''}`} />
-              <span>{isAutoSyncing ? 'Updating & Syncing...' : 'Update Data & Auto Sync'}</span>
-            </button>
+            
 
             {/* Toggle Fill Marks by Subject */}
             <button
@@ -750,7 +740,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               className="flex items-center gap-1.5 rounded-xl bg-white text-slate-900 px-4 py-2.5 text-xs font-black shadow-sm hover:bg-slate-100 active:scale-95 transition"
             >
               <Sheet className="h-4 w-4 text-emerald-600" />
-              <span>Sync Sheets</span>
+              <span>Save Data to Database</span>
             </button>
           </div>
         </div>
@@ -1239,7 +1229,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
 
           <div className="text-[11px] font-bold text-slate-400 hidden sm:block uppercase tracking-wider">
-            Tie Rule: Identical totals share the same rank (CBSE Norms)
+            Tie Rule: Same Marks share the same Rank (RBSE Norms)
           </div>
         </div>
 
@@ -1258,7 +1248,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 ))}
                 <th className="py-3.5 px-3 text-center">Total</th>
                 <th className="py-3.5 px-3 text-center">%</th>
-                <th className="py-3.5 px-2.5 text-center">Grade</th>
                 <th className="py-3.5 px-3 text-center">Status</th>
                 <th className="py-3.5 px-4 text-right print:hidden">Actions</th>
               </tr>
@@ -1345,12 +1334,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         {row.percentage}%
                       </td>
 
-                      {/* Grade */}
-                      <td className="py-3.5 px-2.5 text-center">
-                        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-black text-slate-800">
-                          {row.grade}
-                        </span>
-                      </td>
+                     
 
                       {/* Status */}
                       <td className="py-3.5 px-3 text-center">

@@ -92,8 +92,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Session & Online Status Indicator */}
           <div className="hidden lg:flex items-center gap-6 text-[11px] font-bold uppercase tracking-wider text-slate-500">
             <div className="flex flex-col items-end leading-tight">
-              <span className="text-slate-900 font-bold">Session 2025–2026</span>
-              <span className="text-blue-600 font-semibold tracking-normal text-[10px]">Evaluation Phase II</span>
+              <span className="text-slate-900 font-bold">Session 2026–2027</span>
+              
             </div>
             <div className="h-7 w-[1px] bg-slate-200"></div>
             <div className="flex items-center gap-2">
