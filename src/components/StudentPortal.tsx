@@ -129,7 +129,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                   id="student-roll-input"
                   value={rollNumberInput}
                   onChange={(e) => setRollNumberInput(e.target.value)}
-                  placeholder="Enter Roll Number (e.g. 101, 102, 105)"
+                  placeholder="Enter Roll Number (e.g. 801, 802, 803)"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-hidden transition-all"
                 />
               </div>
@@ -178,7 +178,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
             No Student Found for Roll No &quot;{searchedRoll}&quot;
           </h3>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-            Please verify the roll number entered. You can try sample roll numbers like 101, 102 (Class 10), 801, 802 (Class 8), 1201 (Class 12A), 1211 (Class 12B), or 1221 (Class 12C).
+            Please verify the roll number entered. You can try sample roll numbers like 801, 802 (Class 8), 1001, 1002 (Class 10), 1401 (Class 12A), 1501 (Class 12B), or 1601 (Class 12C).
           </p>
         </div>
       ) : (
@@ -251,10 +251,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               {/* Student Metadata Card */}
               <div className="grid grid-cols-2 gap-4 border-b border-slate-200 bg-white px-6 py-5 sm:grid-cols-4 sm:px-10">
                 <div>
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Name</div>
-                  <div className="text-sm font-bold text-slate-900 flex items-center gap-1.5 mt-1">
-                    <User className="h-3.5 w-3.5 text-blue-600" />
-                    {currentResult.student.name}
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Class &amp; Section</div>
+                  <div className="text-sm font-bold text-slate-900 mt-1">
+                    {getDisplayClassName(currentResult.student.className)}
                   </div>
                 </div>
                 <div>
@@ -264,9 +263,10 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                   </div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Class &amp; Section</div>
-                  <div className="text-sm font-bold text-slate-900 mt-1">
-                    {getDisplayClassName(currentResult.student.className)}
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Name</div>
+                  <div className="text-sm font-bold text-slate-900 flex items-center gap-1.5 mt-1">
+                    <User className="h-3.5 w-3.5 text-blue-600" />
+                    {currentResult.student.name}
                   </div>
                 </div>
                 <div>
@@ -336,7 +336,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                         <th className="py-3 px-4 text-center">Max Marks</th>
                         <th className="py-3 px-4 text-center">Marks Obtained</th>
                         <th className="py-3 px-4 text-center">Percentage</th>
-                        <th className="py-3 px-4 text-center">Grade</th>
                         <th className="py-3 px-4 text-right">Result</th>
                       </tr>
                     </thead>
@@ -354,21 +353,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                           <td className="py-3.5 px-4 text-center text-xs font-mono text-slate-600">
                             {sub.percentage}%
                           </td>
-                          <td className="py-3.5 px-4 text-center">
-                            <span
-                              className={`inline-block rounded-md px-2.5 py-0.5 text-xs font-black uppercase tracking-tighter ${
-                                sub.grade === 'A+' || sub.grade === 'A'
-                                  ? 'bg-emerald-100 text-emerald-800'
-                                  : sub.grade === 'B+' || sub.grade === 'B'
-                                  ? 'bg-blue-100 text-blue-800'
-                                  : sub.grade === 'C+' || sub.grade === 'C'
-                                  ? 'bg-amber-100 text-amber-800'
-                                  : 'bg-rose-100 text-rose-800'
-                              }`}
-                            >
-                              {sub.grade}
-                            </span>
-                          </td>
+                          
                           <td className="py-3.5 px-4 text-right">
                             {sub.isPassing ? (
                               <span className="text-xs font-bold text-emerald-600 uppercase tracking-tight">Pass</span>
@@ -393,11 +378,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                         <td className="py-3.5 px-4 text-center font-mono font-bold">
                           {currentResult.percentage}%
                         </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span className="rounded-md bg-slate-900 px-2.5 py-0.5 text-xs font-extrabold text-white">
-                            {currentResult.overallGrade}
-                          </span>
-                        </td>
+                        
                         <td className="py-3.5 px-4 text-right font-extrabold text-emerald-600">
                           {currentResult.status}
                         </td>

@@ -41,7 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               Govt. Sr. Sec. School
             </span>
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 truncate max-w-xs sm:max-w-md">
-              Sanwaloda Purohitan, Sikar • Examination Cell
+              Sanwaloda Purohitan, Sikar
             </span>
           </div>
         </div>
