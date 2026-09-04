@@ -332,7 +332,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       className: selectedClass,
       maxMarksPerSubject: Number(newExamMaxMarks) || 100,
       date: newExamDate,
-      academicYear: '2025-26',
+      academicYear: '2026-27',
     };
 
     onAddExam(newExam);
@@ -693,7 +693,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 Educator Gateway
               </span>
               <span className="text-[10px] font-black uppercase tracking-wider text-white bg-emerald-600 px-3 py-1 rounded-full border border-emerald-500">
-                Verified Session
+                Session 2026-27
               </span>
             </div>
             <h1 className="mt-3 text-2xl font-black tracking-tight text-white sm:text-3xl">
@@ -1672,7 +1672,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
-                Create New Examination ({selectedClass})
+                Create New Examination ({selectedClass} • Session 2026-27)
               </h3>
               <button
                 type="button"

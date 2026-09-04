@@ -100,7 +100,7 @@ export function createDefaultExams(): Exam[] {
         className: cls,
         maxMarksPerSubject: 20,
         date: rtDates[i - 1],
-        academicYear: '2025-26',
+        academicYear: '2026-27',
       });
     }
     // Pre Board 1 to 4 (80 Marks each subject)
@@ -112,7 +112,7 @@ export function createDefaultExams(): Exam[] {
         className: cls,
         maxMarksPerSubject: 80,
         date: pbDates[i - 1],
-        academicYear: '2025-26',
+        academicYear: '2026-27',
       });
     }
   });
@@ -239,7 +239,8 @@ export function getStoredExams(): Exam[] {
       saveExams(DEFAULT_EXAMS);
       return DEFAULT_EXAMS;
     }
-    return parsed;
+    const normalized = parsed.map((e: Exam) => ({ ...e, academicYear: '2026-27' }));
+    return normalized;
   } catch {
     return DEFAULT_EXAMS;
   }
