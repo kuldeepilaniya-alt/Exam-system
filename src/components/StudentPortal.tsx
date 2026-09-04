@@ -222,27 +222,27 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               </div>
 
               {/* Student Metadata Card */}
-              <div className="grid grid-cols-2 gap-4 border-b border-slate-200 bg-white px-6 py-5 sm:grid-cols-4 sm:px-10 text-center">
-                <div>
+              <div className="grid grid-cols-2 divide-x divide-y divide-slate-200 border-b border-slate-200 bg-white sm:grid-cols-4 sm:divide-y-0">
+                <div className="p-4 text-center">
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Class &amp; Section</div>
                   <div className="text-sm font-bold text-slate-900 mt-1">
                     {getDisplayClassName(currentResult.student.className)}
                   </div>
                 </div>
-                <div>
+                <div className="p-4 text-center">
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Roll Number</div>
                   <div className="text-sm font-bold font-mono text-blue-600 mt-1">
                     #{currentResult.student.rollNo}
                   </div>
                 </div>
-                <div>
+                <div className="p-4 text-center">
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Name</div>
                   <div className="text-sm font-bold text-slate-900 flex items-center justify-center gap-1.5 mt-1">
                     <User className="h-3.5 w-3.5 text-blue-600" />
                     {currentResult.student.name}
                   </div>
                 </div>
-                <div>
+                <div className="p-4 text-center">
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Father&apos;s Name</div>
                   <div className="text-sm font-bold text-slate-900 mt-1">
                     {currentResult.student.fatherName || 'N/A'}

@@ -82,7 +82,7 @@ export interface ClassRankRow {
 export interface GoogleSheetsSyncState {
   isConnected: boolean;
   userEmail: string | null;
-  spreadsheetId: string | null;
+  webAppUrl: string | null;
   spreadsheetUrl: string | null;
   lastSyncedAt: string | null;
   syncInProgress: boolean;
