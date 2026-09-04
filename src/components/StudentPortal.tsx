@@ -303,7 +303,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
 
               {/* Subject Breakdown Table */}
               <br></br>
-                <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                <div className="overflow-x-auto border border-slate-200">
                   <table className="w-full text-left text-sm">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-400">
