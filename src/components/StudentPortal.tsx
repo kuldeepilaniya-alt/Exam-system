@@ -270,11 +270,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                   <div className="text-sm font-bold text-slate-900 mt-1">
                     {currentResult.student.fatherName || 'N/A'}
                   </div>
-                  {currentResult.student.motherName && (
-                    <div className="text-[11px] text-slate-500 font-medium">
-                      Mother: {currentResult.student.motherName}
-                    </div>
-                  )}
                 </div>
               </div>
 
