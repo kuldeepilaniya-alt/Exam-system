@@ -198,7 +198,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition"
             >
               <Printer className="h-3.5 w-3.5" />
-              <span>Print / Save to PDF</span>
+              <span>Print</span>
             </button>
           </div>
 
@@ -213,13 +213,15 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 <h2 className="text-xl font-extrabold tracking-tight text-slate-900 uppercase sm:text-2xl">
                   Govt. Sr. Sec. School, Sanwaloda Purohitan, Sikar
                 </h2>
+
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
-                  Affiliated to Board of Secondary Education, Rajasthan (RBSE) • Sanwaloda Purohitan, Sikar (Raj.)
+                  Affiliated to Board of Secondary Education, Rajasthan (RBSE)
                 </p>
                 <div className="mt-3 inline-block rounded-full bg-emerald-100 text-emerald-800 px-4 py-1 text-[11px] font-black uppercase tracking-wider">
                   STATEMENT OF MARKS — {currentResult.exam.examName.toUpperCase()}
-                </div>
-              </div>
+                </div>   
+                </div>            
+              
 
               {/* Student Metadata Card */}
               <div className="grid grid-cols-2 divide-x divide-y divide-slate-200 border-b border-slate-200 bg-white sm:grid-cols-4 sm:divide-y-0">
@@ -339,7 +341,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                     <tfoot>
                       <tr className="border-t-2 border-slate-900 bg-slate-50/80 font-bold text-slate-900">
                         <td colSpan={2} className="py-3.5 px-4 font-extrabold uppercase text-xs tracking-wider">
-                          Grand Total &amp; Aggregate
+                          Grand Total
                         </td>
                         <td className="py-3.5 px-4 text-center font-mono font-bold">
                           {currentResult.totalMaxMarks}
@@ -373,7 +375,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 <div className="mt-8 grid grid-cols-3 gap-6 pt-6 border-t border-slate-200 text-center">
                   <div>
                     <div className="h-10 border-b border-dashed border-slate-300 flex items-end justify-center pb-1">
-                      <span className="font-serif italic text-xs text-slate-600">_____</span>
+                      <span className="font-serif italic text-xs text-slate-600"></span>
                     </div>
                     <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">Class Teacher</div>
                   </div>
@@ -389,7 +391,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                     </div>
                     <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">Principal</div>
                   </div>
+                  
                 </div>
+                 
               </div>
             </div>
           )}
