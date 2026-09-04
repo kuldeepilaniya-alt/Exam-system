@@ -204,10 +204,12 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
 
           {/* Official Printable Mark Sheet Card */}
           {currentResult && (
-            <div
+            
+          <div
               id="official-marksheet-card"
               className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50 print:border-none print:shadow-none print:p-0"
-            >
+              >
+            <div className="px-6 py-6 sm:px-10">
               {/* Header Badge */}
               <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-6 sm:px-10 text-center">
                 <h2 className="text-xl font-extrabold tracking-tight text-slate-900 uppercase sm:text-2xl">
@@ -300,7 +302,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               </div>
 
               {/* Subject Breakdown Table */}
-              <div className="px-6 py-6 sm:px-10">
+              <br></br>
                 <div className="overflow-x-auto rounded-2xl border border-slate-200">
                   <table className="w-full text-left text-sm">
                     <thead>
