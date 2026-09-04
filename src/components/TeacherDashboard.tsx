@@ -1477,19 +1477,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                             <Edit3 className="h-3 w-3 text-slate-500" />
                             <span>Edit</span>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (activeExam) {
-                                onViewStudentResult(row.rollNo, activeExam.examId);
-                              }
-                            }}
-                            title="View official individual marksheet"
-                            className="flex items-center gap-1 rounded-xl bg-slate-900 px-2.5 py-1 text-xs font-bold text-white hover:bg-slate-800 transition"
-                          >
-                            <span>Marksheet</span>
-                          </button>
-                        </div>
+                          
+                          </div>
                       </td>
                     </tr>
                   );

@@ -308,7 +308,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                     {currentResult.status === 'PASSED' ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3.5 py-1 text-xs font-black text-emerald-800 uppercase tracking-tight">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                        PASSED ({currentResult.overallGrade})
+                        PASSED
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3.5 py-1 text-xs font-black text-rose-800 uppercase tracking-tight">
