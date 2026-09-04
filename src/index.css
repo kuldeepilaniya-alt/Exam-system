@@ -11,10 +11,15 @@
 }
 
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 1cm;
+  }
+  
   body {
     background-color: #ffffff !important;
     color: #000000 !important;
-    font-size: 12pt;
+    font-size: 11pt;
   }
 
   header,
@@ -31,13 +36,24 @@
     width: 100% !important;
   }
 
+  /* Make tables more compact for print */
   table {
     width: 100% !important;
     border-collapse: collapse !important;
   }
-
+  
   th,
   td {
-    border: 1px solid #e2e8f0 !important;
+    border: 1px solid #000 !important;
+    color: #000 !important;
+    background-color: #fff !important;
+    padding: 4px !important;
+    font-size: 10pt !important;
+  }
+
+  th {
+    font-weight: bold !important;
+    background-color: #f1f5f9 !important;
   }
 }
+

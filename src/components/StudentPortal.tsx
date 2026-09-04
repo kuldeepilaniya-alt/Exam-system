@@ -274,8 +274,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 <div className="p-4 text-center">
                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Class Rank</div>
                   <div className="mt-1 flex items-center justify-center gap-1 text-2xl font-extrabold text-slate-900 sm:text-3xl">
-                    <Award className="h-5 w-5 text-amber-500" />
-                    Rank {currentResult.rank}
+                    {currentResult.rank}
                     <span className="text-xs font-normal text-slate-400">/ {currentResult.totalStudentsInClass}</span>
                   </div>
                 </div>

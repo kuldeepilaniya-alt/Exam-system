@@ -688,10 +688,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               </span>
             </div>
             <h1 className="mt-3 text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Teacher Marks &amp; Class Ranking Dashboard
+              Teacher Dashboard
             </h1>
             <p className="mt-1.5 text-sm text-white/90 font-medium">
-              Welcome, <span className="text-white font-bold">{activeTeacher.name}</span>. Manage student examination records, compute class merit ranks, and auto-sync with Google Sheets.
+              Welcome, <span className="text-white font-bold">{activeTeacher.name}</span>. Manage Student Examination Marks.
             </p>
           </div>
 
@@ -1088,14 +1088,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
 
           {/* Table of all students for the selected subject */}
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto print:overflow-visible">
             <table className="w-full text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
                   <th className="py-3.5 px-4 text-center">#</th>
                   <th className="py-3.5 px-4">Roll No</th>
                   <th className="py-3.5 px-4">Student Name</th>
-                  <th className="py-3.5 px-4 hidden sm:table-cell">Father Name</th>
+                  <th className="py-3.5 px-4 hidden sm:table-cell print:table-cell">Father Name</th>
                   <th className="py-3.5 px-4 text-center">Saved Score</th>
                   <th className="py-3.5 px-6 text-center">
                     Enter Marks (Max {activeExam?.maxMarksPerSubject || 100})
@@ -1132,7 +1132,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
                         {st.name}
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-slate-500 hidden sm:table-cell whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-xs text-slate-500 hidden sm:table-cell print:table-cell whitespace-nowrap">
                         {st.fatherName}
                       </td>
                       <td className="py-3.5 px-4 text-center font-mono text-xs text-slate-500">
@@ -1216,12 +1216,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         </div>
       ) : (
         /* Class Rankings Table */
-        <div className="mt-4 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+        <div className="mt-4 overflow-hidden print:overflow-visible print:border-none print:shadow-none rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
         <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Award className="h-5 w-5 text-blue-600" />
             <h3 className="font-extrabold text-slate-900 tracking-tight">
-              Official Class Merit List (Rank Sorted)
+              Rank List
             </h3>
             <span className="text-xs font-bold text-slate-400">
               ({displayedStudents.length} Students)
@@ -1229,18 +1229,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
 
           <div className="text-[11px] font-bold text-slate-400 hidden sm:block uppercase tracking-wider">
-            Tie Rule: Same Marks share the same Rank (RBSE Norms)
+            (RBSE)
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto print:overflow-visible">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <th className="py-3.5 px-4 text-center">Rank</th>
                 <th className="py-3.5 px-3">Roll No</th>
                 <th className="py-3.5 px-4">Student Name</th>
-                <th className="py-3.5 px-3 hidden lg:table-cell">Father Name</th>
+                <th className="py-3.5 px-3 hidden lg:table-cell print:table-cell">Father Name</th>
                 {subjects.map((sub) => (
                   <th key={sub} className="py-3.5 px-2.5 text-center font-bold">
                     {sub}
@@ -1303,7 +1303,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       </td>
 
                       {/* Father Name */}
-                      <td className="py-3.5 px-3 text-xs font-medium text-slate-500 hidden lg:table-cell whitespace-nowrap">
+                      <td className="py-3.5 px-3 text-xs font-medium text-slate-500 hidden lg:table-cell print:table-cell whitespace-nowrap">
                         {row.fatherName}
                       </td>
 
