@@ -3,11 +3,10 @@ import {
   GraduationCap,
   LayoutDashboard,
   LogOut,
-  Sheet,
+  Menu,
   ShieldAlert,
-  UserCheck,
 } from 'lucide-react';
-import { GoogleSheetsSyncState, TeacherUser } from '../types';
+import { TeacherUser } from '../types';
 
 interface NavbarProps {
   currentView: 'student' | 'teacher';
@@ -15,8 +14,7 @@ interface NavbarProps {
   activeTeacher: TeacherUser | null;
   onOpenTeacherLogin: () => void;
   onTeacherLogout: () => void;
-  googleSheetsState: GoogleSheetsSyncState;
-  onOpenSheetsPanel: () => void;
+  onToggleMobileSidebar: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -25,22 +23,33 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTeacher,
   onOpenTeacherLogin,
   onTeacherLogout,
-  googleSheetsState,
-  onOpenSheetsPanel,
+  onToggleMobileSidebar,
 }) => {
   return (
     <header className="sticky top-0 z-40 h-16 border-b border-slate-200 bg-white shadow-xs print:hidden">
-      <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 sm:px-8">
-        {/* Brand / School Header */}
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white font-bold text-lg shadow-xs">
-            G
-          </div>
+      <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-3 sm:px-8">
+        {/* Brand / School Header with Clickable G Icon */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          <button
+            type="button"
+            id="brand-g-button"
+            onClick={onToggleMobileSidebar}
+            title="Open Quick Menu (Student Result, Staff Portal, Add Subject/Student/Exam, Database, Logout)"
+            className="group relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white font-extrabold text-lg shadow-sm hover:bg-slate-800 active:scale-95 transition cursor-pointer"
+            aria-label="Open Sidebar Menu"
+          >
+            <span>G</span>
+            {/* Small menu dots indicator */}
+            <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-indigo-600 text-white shadow-2xs group-hover:scale-110 transition">
+              <Menu className="h-2.5 w-2.5" />
+            </span>
+          </button>
+
           <div className="flex flex-col leading-tight">
-            <span className="font-bold text-slate-900 tracking-tight text-base sm:text-lg">
+            <span className="font-bold text-slate-900 tracking-tight text-sm sm:text-lg">
               Govt. Sr. Sec. School
             </span>
-            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 truncate max-w-xs sm:max-w-md">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 truncate max-w-[155px] sm:max-w-md">
               Sanwaloda Purohitan, Sikar
             </span>
           </div>
@@ -105,21 +114,6 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Teacher Status / Actions */}
           {activeTeacher ? (
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                id="nav-sheets-status-btn"
-                onClick={onOpenSheetsPanel}
-                title="Google Sheets Database Status"
-                className={`hidden md:flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
-                  googleSheetsState.isConnected
-                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                <Sheet className="h-3.5 w-3.5" />
-                <span>{googleSheetsState.isConnected ? 'Sheets Synced' : 'Sync Sheets'}</span>
-              </button>
-
               <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 py-1 px-2.5">
                 <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-900 text-white text-xs font-bold">
                   {activeTeacher.name.charAt(0)}

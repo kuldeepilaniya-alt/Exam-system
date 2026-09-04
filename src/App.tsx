@@ -202,8 +202,6 @@ export default function App() {
         activeTeacher={activeTeacher}
         onOpenTeacherLogin={() => setIsTeacherLoginOpen(true)}
         onTeacherLogout={handleTeacherLogout}
-        googleSheetsState={googleSheetsState}
-        onOpenSheetsPanel={() => setIsSheetsPanelOpen(true)}
       />
 
       {/* Main Content Body */}

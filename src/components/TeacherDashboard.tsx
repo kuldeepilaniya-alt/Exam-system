@@ -21,6 +21,7 @@ import {
   Settings,
   Sheet,
   Sparkles,
+  Trash2,
   Trophy,
   UserPlus,
   Users,
@@ -69,6 +70,11 @@ interface TeacherDashboardProps {
   onUpdateMarks: (newMarks: MarkRecord[]) => void;
   onAddStudent: (newStudent: Student) => void;
   onAddExam: (newExam: Exam) => void;
+  onDeleteExam?: (examId: string) => void;
+  onDeleteStudentMarks?: (examId: string, rollNo: string) => void;
+  onDeleteStudent?: (rollNo: string, className: string) => void;
+  onOpenAddSubject?: () => void;
+  onSaveSubjects?: (className: string, subjects: string[]) => void;
   onUpdateGoogleSheetsState: (state: Partial<GoogleSheetsSyncState>) => void;
   onViewStudentResult: (rollNo: string, examId: string) => void;
   onOpenGoogleAuth: () => void;
@@ -90,6 +96,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   onUpdateMarks,
   onAddStudent,
   onAddExam,
+  onDeleteExam,
+  onDeleteStudentMarks,
+  onDeleteStudent,
+  onOpenAddSubject,
+  onSaveSubjects,
   onUpdateGoogleSheetsState,
   onViewStudentResult,
   onOpenGoogleAuth,
@@ -178,6 +189,64 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatusMessage, setSyncStatusMessage] = useState<string | null>(null);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+
+  // Targets for Deleting Exam or Student Test Marks
+  const [deleteExamTarget, setDeleteExamTarget] = useState<Exam | null>(null);
+  const [deleteMarksTarget, setDeleteMarksTarget] = useState<{ student: Student; exam: Exam } | null>(null);
+  const [deleteStudentTarget, setDeleteStudentTarget] = useState<Student | null>(null);
+
+  const handleConfirmDeleteExam = () => {
+    if (!deleteExamTarget) return;
+    const targetId = deleteExamTarget.examId;
+    const targetName = deleteExamTarget.examName;
+
+    if (onDeleteExam) {
+      onDeleteExam(targetId);
+    } else {
+      const updatedMarks = marks.filter((m) => m.examId !== targetId);
+      onUpdateMarks(updatedMarks);
+    }
+
+    const remaining = classExams.filter((e) => e.examId !== targetId);
+    if (remaining.length > 0) {
+      setSelectedExamId(remaining[0].examId);
+    }
+
+    setDeleteExamTarget(null);
+    setSyncStatusMessage(`✓ Exam "${targetName}" and all associated student marks permanently deleted.`);
+    setTimeout(() => setSyncStatusMessage(null), 4500);
+  };
+
+  const handleConfirmDeleteMarks = () => {
+    if (!deleteMarksTarget) return;
+    const { student, exam } = deleteMarksTarget;
+
+    if (onDeleteStudentMarks) {
+      onDeleteStudentMarks(exam.examId, student.rollNo);
+    } else {
+      const updated = marks.filter(
+        (m) => !(m.examId === exam.examId && m.rollNo.toString().trim() === student.rollNo.toString().trim())
+      );
+      onUpdateMarks(updated);
+    }
+
+    setDeleteMarksTarget(null);
+    setSyncStatusMessage(`✓ Cleared/deleted test marks for student ${student.name} in ${exam.examName}.`);
+    setTimeout(() => setSyncStatusMessage(null), 4500);
+  };
+
+  const handleConfirmDeleteStudent = () => {
+    if (!deleteStudentTarget) return;
+    const { rollNo, name, className } = deleteStudentTarget;
+
+    if (onDeleteStudent) {
+      onDeleteStudent(rollNo, className);
+    }
+
+    setDeleteStudentTarget(null);
+    setSyncStatusMessage(`✓ Student ${name} (Roll #${rollNo}) removed from class roster.`);
+    setTimeout(() => setSyncStatusMessage(null), 4500);
+  };
 
   // Stored URLs for Apps Script Web App and Google Sheet
   const [webAppUrl, setWebAppUrl] = useState<string>(
@@ -722,6 +791,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <span>{dashboardViewMode === 'subject-entry' ? 'View Class Merit List' : 'Fill Marks by Subject'}</span>
             </button>
 
+            {onOpenAddSubject && (
+              <button
+                type="button"
+                id="top-add-subject-btn"
+                onClick={onOpenAddSubject}
+                className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-white/20 transition"
+              >
+                <BookOpen className="h-4 w-4 text-purple-300" />
+                <span>Add Subject</span>
+              </button>
+            )}
+
             <button
               type="button"
               id="add-student-btn"
@@ -823,6 +904,19 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </option>
               ))}
             </select>
+
+            {activeExam && (
+              <button
+                type="button"
+                id="delete-exam-action-btn"
+                onClick={() => setDeleteExamTarget(activeExam)}
+                title={`Delete exam "${activeExam.examName}" and all recorded student marks for this test`}
+                className="flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100 hover:border-rose-300 active:scale-95 transition shadow-2xs cursor-pointer"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Delete Exam</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -1241,7 +1335,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <div className="flex items-center gap-2">
             <Award className="h-5 w-5 text-blue-600" />
             <h3 className="font-extrabold text-slate-900 tracking-tight">
-              Rank List
+              Students Rank List
             </h3>
             <span className="text-xs font-bold text-slate-400">
               ({displayedStudents.length} Students)

@@ -185,7 +185,8 @@ export async function syncDataToGoogleSheet(
     'RollNo',
     'StudentName',
     'Class',
-    ...allKnownSubjects,
+    'Subjects',
+    'MarksObtained',
     'Total',
     'MaxTotal',
     'Percentage',
@@ -205,12 +206,21 @@ export async function syncDataToGoogleSheet(
         (m) => m.examId === exam.examId && m.rollNo.toString().trim() === r.rollNo.toString().trim()
       );
 
+      const subjectsList: string[] = [];
+      const marksList: (number | string)[] = [];
+
+      subjects.forEach((sub) => {
+        subjectsList.push(sub);
+        marksList.push(r.subjectMarks[sub] ?? 0);
+      });
+
       const row = [
         exam.examId,
         r.rollNo,
         r.name,
         exam.className,
-        ...allKnownSubjects.map((sub) => r.subjectMarks[sub] ?? 0),
+        subjectsList.join(', '),
+        marksList.join(', '),
         r.totalObtained,
         r.totalMax,
         r.percentage,
@@ -380,13 +390,26 @@ export async function loadDataFromGoogleSheet(
     const rollNoIdx = headerLower.findIndex((h) => h.includes('roll'));
     const remarksIdx = headerLower.findIndex((h) => h.includes('remark'));
 
+    const subjectsColIdx = headerLower.findIndex((h) => h === 'subjects' || h === 'subject');
+    const marksColIdx = headerLower.findIndex(
+      (h) => h === 'marksobtained' || h === 'marks obtained' || h === 'marks' || h === 'respectivemarks'
+    );
+
     const ignoredHeaders = new Set([
       'examid',
       'rollno',
       'studentname',
       'name',
       'class',
+      'subjects',
+      'subject',
+      'marksobtained',
+      'marks obtained',
+      'marks',
+      'respectivemarks',
       'total',
+      'totalmarks',
+      'total marks',
       'maxtotal',
       'max total',
       'percentage',
@@ -403,16 +426,34 @@ export async function loadDataFromGoogleSheet(
         const rollNo = String(rollNoIdx !== -1 ? r[rollNoIdx] : r[1]).trim();
         const marksMap: { [key: string]: number } = {};
 
-        headerRow.forEach((colName, colIdx) => {
-          const norm = colName.toLowerCase().replace(/\s+/g, '');
-          if (!ignoredHeaders.has(colName.toLowerCase()) && !ignoredHeaders.has(norm)) {
-            const raw = r[colIdx];
-            const num = Number(raw ?? 0);
-            if (!isNaN(num)) {
-              marksMap[colName] = num;
+        // If stored as single-cell subjects and respective marks in adjacent cell
+        if (subjectsColIdx !== -1 && marksColIdx !== -1) {
+          const subArr = String(r[subjectsColIdx] || '')
+            .split(/[,;\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+          const marksArr = String(r[marksColIdx] || '')
+            .split(/[,;\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean);
+
+          subArr.forEach((sName, i) => {
+            const val = Number(marksArr[i] ?? 0);
+            marksMap[sName] = isNaN(val) ? 0 : val;
+          });
+        } else {
+          // Standard wide column layout (one column per subject)
+          headerRow.forEach((colName, colIdx) => {
+            const norm = colName.toLowerCase().replace(/\s+/g, '');
+            if (!ignoredHeaders.has(colName.toLowerCase()) && !ignoredHeaders.has(norm)) {
+              const raw = r[colIdx];
+              const num = Number(raw ?? 0);
+              if (!isNaN(num)) {
+                marksMap[colName] = num;
+              }
             }
-          }
-        });
+          });
+        }
 
         const remarks = remarksIdx !== -1 && r[remarksIdx] ? String(r[remarksIdx]).trim() : undefined;
 

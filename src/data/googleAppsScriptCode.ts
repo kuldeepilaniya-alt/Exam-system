@@ -69,7 +69,7 @@ function doPost(e) {
 
     // 3. Synchronize Marks Tab
     if (payload.marks && Array.isArray(payload.marks)) {
-      syncMarks(ss, payload.marks, payload.students || []);
+      syncMarks(ss, payload.marks, payload.students || [], payload.subjectsMap || {});
     }
 
     // 4. Synchronize Subjects Configuration Tab
@@ -218,8 +218,9 @@ function syncExams(ss, exams) {
 
 /**
  * 3. Synchronize Marks Sheet
+ * Stores all subjects in a single cell, and respective marks in the next cell
  */
-function syncMarks(ss, marks, students) {
+function syncMarks(ss, marks, students, subjectsMap) {
   var sheet = getOrCreateSheet(ss, "Marks");
   sheet.clear();
 
@@ -228,8 +229,9 @@ function syncMarks(ss, marks, students) {
     "Roll No",
     "Student Name",
     "Class",
-    "Subject",
+    "Subjects",
     "Marks Obtained",
+    "Total Marks",
     "Teacher Remarks"
   ];
   applyHeaderStyles(sheet, headers);
@@ -253,24 +255,55 @@ function syncMarks(ss, marks, students) {
     var stClass = st.className || "";
 
     var subjMap = rec.marks || {};
-    Object.keys(subjMap).forEach(function (subject) {
-      rows.push([
-        examId,
-        rollNo,
-        stName,
-        stClass,
-        subject,
-        Number(subjMap[subject]),
-        remarks
-      ]);
+    var subjectKeys = Object.keys(subjMap);
+
+    // If subjectsMap is provided for this class, preserve curriculum order
+    if (subjectsMap && stClass && subjectsMap[stClass] && Array.isArray(subjectsMap[stClass])) {
+      var classSubs = subjectsMap[stClass];
+      var ordered = [];
+      classSubs.forEach(function (cs) {
+        if (subjMap.hasOwnProperty(cs)) {
+          ordered.push(cs);
+        }
+      });
+      subjectKeys.forEach(function (k) {
+        if (ordered.indexOf(k) === -1) {
+          ordered.push(k);
+        }
+      });
+      subjectKeys = ordered;
+    }
+
+    var subjectsList = [];
+    var marksList = [];
+    var totalMarks = 0;
+
+    subjectKeys.forEach(function (subject) {
+      subjectsList.push(subject);
+      var val = subjMap[subject];
+      var numVal = (val !== undefined && val !== null && !isNaN(Number(val))) ? Number(val) : 0;
+      marksList.push(numVal);
+      totalMarks += numVal;
     });
+
+    rows.push([
+      examId,
+      rollNo,
+      stName,
+      stClass,
+      subjectsList.join(", "),
+      marksList.join(", "),
+      totalMarks,
+      remarks
+    ]);
   });
 
   if (rows.length > 0) {
     sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
-    sheet.getRange(2, 1, rows.length, 2).setHorizontalAlignment("center");
-    sheet.getRange(2, 4, rows.length, 1).setHorizontalAlignment("center");
-    sheet.getRange(2, 6, rows.length, 1).setHorizontalAlignment("center");
+    sheet.getRange(2, 1, rows.length, 2).setHorizontalAlignment("center"); // Exam ID, Roll No
+    sheet.getRange(2, 4, rows.length, 1).setHorizontalAlignment("center"); // Class
+    sheet.getRange(2, 5, rows.length, 1).setHorizontalAlignment("left");   // Subjects
+    sheet.getRange(2, 6, rows.length, 2).setHorizontalAlignment("center"); // Marks Obtained, Total Marks
 
     for (var c = 1; c <= headers.length; c++) {
       sheet.autoResizeColumn(c);

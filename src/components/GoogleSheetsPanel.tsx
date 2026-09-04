@@ -355,7 +355,7 @@ export const GoogleSheetsPanel: React.FC<GoogleSheetsPanelProps> = ({
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
               <span className="font-bold text-blue-600 block mb-0.5">3. Marks Sheet</span>
-              RollNo, Subject scores, Total, %, Rank, Remarks
+              ExamID, RollNo, Name, Class, Subjects (single cell), Marks Obtained (next cell), Total, Remarks
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-2xs">
               <span className="font-bold text-blue-600 block mb-0.5">4. Subjects &amp; 5. Teachers</span>
