@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Exam,
   GoogleSheetsSyncState,
@@ -14,21 +14,29 @@ import {
   getStoredStudents,
   getStoredSubjectsMap,
   getStoredTeachers,
+  getStoredWebAppUrl,
   resetToDefaults,
   saveActiveTeacher,
   saveExams,
   saveLinkedSheetId,
   saveMarks,
   saveStudents,
+  saveSubjectsMap,
   saveTeachers,
+  saveStoredWebAppUrl,
 } from './data/mockDatabase';
 import { Navbar } from './components/Navbar';
 import { StudentPortal } from './components/StudentPortal';
 import { TeacherDashboard } from './components/TeacherDashboard';
 import { TeacherLoginModal } from './components/TeacherLoginModal';
 import { GoogleSheetsPanel } from './components/GoogleSheetsPanel';
+import { MobileSidebarDrawer } from './components/MobileSidebarDrawer';
+import { AddSubjectModal } from './components/AddSubjectModal';
+import { AddStudentModal } from './components/AddStudentModal';
+import { AddExamModal } from './components/AddExamModal';
 import { initAuth, googleSignIn } from './services/firebaseAuth';
-import { RotateCcw } from 'lucide-react';
+import { fetchDataFromAnyGoogleSource, extractSpreadsheetId } from './services/googleSheets';
+import { RotateCcw, RefreshCw, CheckCircle2, AlertCircle, X } from 'lucide-react';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<'student' | 'teacher'>('student');
@@ -53,8 +61,21 @@ export default function App() {
     };
   });
 
+  const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+  const [syncBanner, setSyncBanner] = useState<{
+    type: 'syncing' | 'success' | 'info';
+    message: string;
+    details?: string;
+  } | null>(null);
+
   const [isTeacherLoginOpen, setIsTeacherLoginOpen] = useState(false);
   const [isSheetsPanelOpen, setIsSheetsPanelOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [isAddExamOpen, setIsAddExamOpen] = useState(false);
+  const [selectedStudentRoll, setSelectedStudentRoll] = useState<string | null>(null);
+  const [selectedExamIdToView, setSelectedExamIdToView] = useState<string | null>(null);
 
   // Initialize Firebase Auth listener for Google OAuth token
   useEffect(() => {
@@ -80,6 +101,141 @@ export default function App() {
       if (typeof unsubscribe === 'function') unsubscribe();
     };
   }, []);
+
+  // Universal function to load latest live data from Google Sheets or Web App
+  const syncDataFromGoogleSheet = useCallback(
+    async (override?: { spreadsheetId?: string; webAppUrl?: string }) => {
+      const sheetId = override?.spreadsheetId || getStoredLinkedSheetId();
+      const webAppUrl = override?.webAppUrl || getStoredWebAppUrl();
+
+      if (!sheetId && !webAppUrl) {
+        return;
+      }
+
+      setIsAutoSyncing(true);
+      setSyncBanner({
+        type: 'syncing',
+        message: 'Syncing live student marks from Google Sheets...',
+      });
+
+      try {
+        const data = await fetchDataFromAnyGoogleSource({
+          spreadsheetId: sheetId,
+          webAppUrl: webAppUrl,
+          accessToken: googleAccessToken,
+        });
+
+        let updatedStudents = false;
+        let updatedExams = false;
+        let updatedMarks = false;
+
+        if (data.students && data.students.length > 0) {
+          setStudents(data.students);
+          saveStudents(data.students);
+          updatedStudents = true;
+        }
+
+        if (data.exams && data.exams.length > 0) {
+          setExams(data.exams);
+          saveExams(data.exams);
+          updatedExams = true;
+        }
+
+        if (data.marks && data.marks.length > 0) {
+          setMarks(data.marks);
+          saveMarks(data.marks);
+          updatedMarks = true;
+        }
+
+        if (data.subjectsMap && Object.keys(data.subjectsMap).length > 0) {
+          setSubjectsMap(data.subjectsMap);
+          saveSubjectsMap(data.subjectsMap);
+        }
+
+        if (data.teachers && data.teachers.length > 0) {
+          setTeachers(data.teachers);
+          saveTeachers(data.teachers);
+        }
+
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        setGoogleSheetsState((prev) => ({
+          ...prev,
+          isConnected: true,
+          lastSyncedAt: timeStr,
+          error: null,
+        }));
+
+        if (updatedStudents || updatedMarks || updatedExams) {
+          setSyncBanner({
+            type: 'success',
+            message: `Live data loaded from Google Sheet (${data.students?.length || 0} students, ${data.marks?.length || 0} marks)`,
+            details: `Updated at ${timeStr}`,
+          });
+
+          // Auto-hide success message after 4.5 seconds
+          setTimeout(() => {
+            setSyncBanner((curr) => (curr?.type === 'success' ? null : curr));
+          }, 4500);
+        } else {
+          setSyncBanner(null);
+        }
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.warn('Google Sheets auto-fetch notice:', errorMsg);
+        setSyncBanner(null);
+      } finally {
+        setIsAutoSyncing(false);
+      }
+    },
+    [googleAccessToken]
+  );
+
+  // Auto-fetch data on URL load and extract parameters
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlSheet =
+      params.get('sheetId') ||
+      params.get('sheetUrl') ||
+      params.get('spreadsheetId') ||
+      params.get('sheet') ||
+      params.get('url');
+
+    const urlWebApp = params.get('webAppUrl') || params.get('scriptUrl') || params.get('webhook');
+    const urlRoll = params.get('roll') || params.get('rollNo') || params.get('r');
+    const urlExam = params.get('exam') || params.get('examId');
+
+    let cleanSheetId: string | undefined = undefined;
+    if (urlSheet) {
+      cleanSheetId = extractSpreadsheetId(urlSheet);
+      if (cleanSheetId) {
+        saveLinkedSheetId(cleanSheetId);
+        setGoogleSheetsState((prev) => ({
+          ...prev,
+          spreadsheetId: cleanSheetId,
+          spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${cleanSheetId}/edit`,
+          isConnected: true,
+        }));
+      }
+    }
+
+    if (urlWebApp) {
+      saveStoredWebAppUrl(urlWebApp);
+    }
+
+    if (urlRoll) {
+      setSelectedStudentRoll(urlRoll.trim());
+      if (urlExam) {
+        setSelectedExamIdToView(urlExam.trim());
+      }
+      setCurrentView('student');
+    }
+
+    // Trigger auto-fetch from Google Sheet or Web App immediately
+    syncDataFromGoogleSheet({
+      spreadsheetId: cleanSheetId,
+      webAppUrl: urlWebApp || undefined,
+    });
+  }, [syncDataFromGoogleSheet]);
 
   // Update handlers
   const handleTeacherLoginSuccess = (teacher: TeacherUser, token?: string) => {
@@ -113,10 +269,82 @@ export default function App() {
     saveStudents(updated);
   };
 
+  const handleUpdateTeachers = (newTeachers: TeacherUser[]) => {
+    setTeachers(newTeachers);
+    saveTeachers(newTeachers);
+  };
+
+  const handleUpdateStudents = (newStudents: Student[]) => {
+    setStudents(newStudents);
+    saveStudents(newStudents);
+  };
+
+  const handleUpdateExams = (newExams: Exam[]) => {
+    setExams(newExams);
+    saveExams(newExams);
+  };
+
   const handleAddExam = (newExam: Exam) => {
     const updated = [...exams, newExam];
     setExams(updated);
     saveExams(updated);
+  };
+
+  const handleSaveSubjects = (className: string, subjects: string[]) => {
+    const updated = {
+      ...subjectsMap,
+      [className]: subjects,
+    };
+    setSubjectsMap(updated);
+    saveSubjectsMap(updated);
+  };
+
+  const handleDeleteExam = (examId: string) => {
+    const updatedExams = exams.filter((e) => e.examId !== examId);
+    setExams(updatedExams);
+    saveExams(updatedExams);
+
+    const updatedMarks = marks.filter((m) => m.examId !== examId);
+    setMarks(updatedMarks);
+    saveMarks(updatedMarks);
+  };
+
+  const handleDeleteStudentMarks = (examId: string, rollNo: string) => {
+    const updatedMarks = marks.filter(
+      (m) => !(m.examId === examId && m.rollNo.toString().trim() === rollNo.toString().trim())
+    );
+    setMarks(updatedMarks);
+    saveMarks(updatedMarks);
+  };
+
+  const handleDeleteStudent = (rollNo: string, className: string) => {
+    const updatedStudents = students.filter(
+      (s) => !(s.rollNo.toString().trim() === rollNo.toString().trim() && s.className === className)
+    );
+    setStudents(updatedStudents);
+    saveStudents(updatedStudents);
+
+    const updatedMarks = marks.filter(
+      (m) => m.rollNo.toString().trim() !== rollNo.toString().trim()
+    );
+    setMarks(updatedMarks);
+    saveMarks(updatedMarks);
+  };
+
+  const handleSaveToDatabase = () => {
+    if (activeTeacher) {
+      setCurrentView('teacher');
+      setTimeout(() => {
+        const syncBtn = document.getElementById('google-sync-top-btn');
+        if (syncBtn) {
+          syncBtn.click();
+        } else {
+          setIsSheetsPanelOpen(true);
+        }
+      }, 150);
+    } else {
+      setIsSheetsPanelOpen(true);
+    }
   };
 
   const handleUpdateGoogleSheetsState = (partial: Partial<GoogleSheetsSyncState>) => {
@@ -170,16 +398,10 @@ export default function App() {
     }
   };
 
-  const handleViewStudentResult = (rollNo: string, _examId: string) => {
+  const handleViewStudentResult = (rollNo: string, examId: string) => {
+    setSelectedStudentRoll(rollNo);
+    setSelectedExamIdToView(examId);
     setCurrentView('student');
-    // The student portal will load the selected student
-    const input = document.getElementById('student-roll-input') as HTMLInputElement;
-    if (input) {
-      input.value = rollNo;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-      const btn = document.getElementById('search-result-btn');
-      btn?.click();
-    }
   };
 
   const handleResetData = () => {
@@ -202,7 +424,46 @@ export default function App() {
         activeTeacher={activeTeacher}
         onOpenTeacherLogin={() => setIsTeacherLoginOpen(true)}
         onTeacherLogout={handleTeacherLogout}
+        onToggleMobileSidebar={() => setIsMobileSidebarOpen(true)}
+        isSyncing={isAutoSyncing}
+        lastSyncedAt={googleSheetsState.lastSyncedAt}
+        onRefreshSync={() => syncDataFromGoogleSheet()}
       />
+
+      {/* Floating / Top Live Sync Notification Banner */}
+      {syncBanner && (
+        <aside
+          aria-label="Google Sheets Sync Status"
+          className="bg-indigo-900 text-white px-4 py-2 text-xs transition-all flex items-center justify-between border-b border-indigo-800 shadow-xs print:hidden"
+        >
+          <div className="mx-auto flex max-w-7xl w-full items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              {syncBanner.type === 'syncing' ? (
+                <RefreshCw className="h-4 w-4 animate-spin text-indigo-300 shrink-0" />
+              ) : syncBanner.type === 'success' ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+              ) : (
+                <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" />
+              )}
+              <span className="font-semibold">{syncBanner.message}</span>
+              {syncBanner.details && (
+                <span className="hidden sm:inline text-indigo-200 text-[11px]">
+                  ({syncBanner.details})
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setSyncBanner(null)}
+              className="text-indigo-300 hover:text-white transition p-1"
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </aside>
+      )}
 
       {/* Main Content Body */}
       <main className="flex-1">
@@ -212,6 +473,8 @@ export default function App() {
             exams={exams}
             marks={marks}
             subjectsMap={subjectsMap}
+            initialRollNo={selectedStudentRoll}
+            initialExamId={selectedExamIdToView}
           />
         ) : activeTeacher ? (
           <TeacherDashboard
@@ -220,10 +483,19 @@ export default function App() {
             exams={exams}
             marks={marks}
             subjectsMap={subjectsMap}
+            teachers={teachers}
+            onUpdateTeachers={handleUpdateTeachers}
+            onUpdateStudents={handleUpdateStudents}
+            onUpdateExams={handleUpdateExams}
             googleSheetsState={googleSheetsState}
             onUpdateMarks={handleUpdateMarks}
             onAddStudent={handleAddStudent}
             onAddExam={handleAddExam}
+            onDeleteExam={handleDeleteExam}
+            onDeleteStudentMarks={handleDeleteStudentMarks}
+            onDeleteStudent={handleDeleteStudent}
+            onOpenAddSubject={() => setIsAddSubjectOpen(true)}
+            onSaveSubjects={handleSaveSubjects}
             onUpdateGoogleSheetsState={handleUpdateGoogleSheetsState}
             onViewStudentResult={handleViewStudentResult}
             onOpenGoogleAuth={handleOpenGoogleAuth}
@@ -271,6 +543,46 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Side Menu Drawer */}
+      <MobileSidebarDrawer
+        isOpen={isMobileSidebarOpen}
+        onClose={() => setIsMobileSidebarOpen(false)}
+        currentView={currentView}
+        onSelectView={setCurrentView}
+        activeTeacher={activeTeacher}
+        onOpenTeacherLogin={() => setIsTeacherLoginOpen(true)}
+        onTeacherLogout={handleTeacherLogout}
+        onOpenAddSubject={() => setIsAddSubjectOpen(true)}
+        onOpenAddStudent={() => setIsAddStudentOpen(true)}
+        onOpenAddExam={() => setIsAddExamOpen(true)}
+        onSaveToDatabase={handleSaveToDatabase}
+        lastSyncedAt={googleSheetsState.lastSyncedAt}
+        isSyncing={isAutoSyncing}
+        onRefreshSync={() => syncDataFromGoogleSheet()}
+      />
+
+      {/* Add Subject Modal */}
+      <AddSubjectModal
+        isOpen={isAddSubjectOpen}
+        onClose={() => setIsAddSubjectOpen(false)}
+        subjectsMap={subjectsMap}
+        onSaveSubjects={handleSaveSubjects}
+      />
+
+      {/* Add Student Modal */}
+      <AddStudentModal
+        isOpen={isAddStudentOpen}
+        onClose={() => setIsAddStudentOpen(false)}
+        onAddStudent={handleAddStudent}
+      />
+
+      {/* Add Exam Modal */}
+      <AddExamModal
+        isOpen={isAddExamOpen}
+        onClose={() => setIsAddExamOpen(false)}
+        onAddExam={handleAddExam}
+      />
 
       {/* Modals */}
       <TeacherLoginModal

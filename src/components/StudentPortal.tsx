@@ -20,6 +20,8 @@ interface StudentPortalProps {
   exams: Exam[];
   marks: MarkRecord[];
   subjectsMap: { [className: string]: string[] };
+  initialRollNo?: string | null;
+  initialExamId?: string | null;
 }
 
 export const StudentPortal: React.FC<StudentPortalProps> = ({
@@ -27,16 +29,32 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
   exams,
   marks,
   subjectsMap,
+  initialRollNo,
+  initialExamId,
 }) => {
-  const [rollNumberInput, setRollNumberInput] = useState<string>('801');
-  const [searchedRoll, setSearchedRoll] = useState<string>('801');
-  const [selectedExamId, setSelectedExamId] = useState<string>('8A-RT1');
+  const [rollNumberInput, setRollNumberInput] = useState<string>(initialRollNo || '');
+  const [searchedRoll, setSearchedRoll] = useState<string>(initialRollNo || '');
+  const [hasSearched, setHasSearched] = useState<boolean>(Boolean(initialRollNo));
+  const [selectedExamId, setSelectedExamId] = useState<string>(initialExamId || '');
+
+  // Update when initialRollNo or initialExamId changes from parent
+  React.useEffect(() => {
+    if (initialRollNo) {
+      setRollNumberInput(initialRollNo);
+      setSearchedRoll(initialRollNo);
+      setHasSearched(true);
+      if (initialExamId) {
+        setSelectedExamId(initialExamId);
+      }
+    }
+  }, [initialRollNo, initialExamId]);
 
   // Find student by entered roll number
   const student = useMemo(() => {
+    if (!hasSearched || !searchedRoll.trim()) return null;
     const clean = searchedRoll.trim().toLowerCase();
     return students.find((s) => s.rollNo.trim().toLowerCase() === clean);
-  }, [searchedRoll, students]);
+  }, [hasSearched, searchedRoll, students]);
 
   // Find all exams applicable for this student's class
   const applicableExams = useMemo(() => {
@@ -87,12 +105,14 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
     e.preventDefault();
     if (rollNumberInput.trim()) {
       setSearchedRoll(rollNumberInput.trim());
+      setHasSearched(true);
     }
   };
 
   const handleSampleClick = (roll: string) => {
     setRollNumberInput(roll);
     setSearchedRoll(roll);
+    setHasSearched(true);
   };
 
   const handlePrint = () => {
@@ -112,7 +132,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               Student Result Portal
             </h1>
             <p className="mt-2 text-sm text-slate-500 leading-relaxed">
-              Enter Student Roll Number to view subject-wise marks, percentage, and Class rank.
+              Enter Student Roll Number and click <strong>View Result</strong> to view official subject marksheet, percentages, and Class rank.
             </p>
 
             {/* Search Input Form */}
@@ -126,14 +146,14 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                   id="student-roll-input"
                   value={rollNumberInput}
                   onChange={(e) => setRollNumberInput(e.target.value)}
-                  placeholder="Enter Roll Number (e.g. 801, 802, 803)"
+                  placeholder="Enter Roll Number (e.g. 801, 802, 1001, 1401)"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-hidden transition-all"
                 />
               </div>
               <button
                 type="submit"
                 id="search-result-btn"
-                className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all text-sm"
+                className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-6 py-3 font-bold text-white shadow-md shadow-emerald-600/20 hover:bg-emerald-700 active:scale-95 transition-all text-sm cursor-pointer"
               >
                 <span>View Result</span>
                 <ChevronRight className="h-4 w-4" />
@@ -142,7 +162,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
 
             {/* Quick Sample Roll Numbers */}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5 text-xs text-slate-500">
-              <span className="font-semibold text-slate-400 mr-1">Quick Select:</span>
+              <span className="font-semibold text-slate-400 mr-1">Sample Roll Nos:</span>
               {[
                 { roll: '801', label: '801 (Class 8)' },
                 { roll: '802', label: '802 (Class 8)' },
@@ -165,20 +185,35 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
         </div>
       </section>
 
-      {/* Result Display Section */}
-      {!student ? (
-        <div className="mt-8 rounded-2xl border border-dashed border-slate-300 p-12 text-center dark:border-slate-800">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
-            <XCircle className="h-7 w-7 text-slate-400" />
+      {/* Conditional Display Area */}
+      {!hasSearched ? (
+        /* Initial State Before Search - Marksheet & Performance Area Hidden */
+        <div className="mt-8 rounded-3xl border border-slate-200 bg-white/70 backdrop-blur-xs p-10 text-center shadow-xs">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 shadow-2xs">
+            <Search className="h-7 w-7" />
           </div>
-          <h3 className="mt-4 text-base font-semibold text-slate-900 dark:text-white">
+          <h3 className="mt-4 text-lg font-extrabold text-slate-900">
+            Awaiting Roll Number Search
+          </h3>
+          <p className="mt-2 text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
+            Please enter the student&apos;s Roll Number in the search box above and click <strong className="text-emerald-700 font-semibold">&quot;View Result&quot;</strong> to generate and view the verified statement of marks, subject analytics, and merit rankings.
+          </p>
+        </div>
+      ) : !student ? (
+        /* Search Performed But Student Not Found */
+        <div className="mt-8 rounded-2xl border border-dashed border-slate-300 p-12 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-500">
+            <XCircle className="h-7 w-7" />
+          </div>
+          <h3 className="mt-4 text-base font-bold text-slate-900">
             No Student Found for Roll No &quot;{searchedRoll}&quot;
           </h3>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-            Please verify the roll number entered. You can try sample roll numbers like 801, 802 (Class 8), 1001, 1002 (Class 10), 1401 (Class 12A), 1501 (Class 12B), or 1601 (Class 12C).
+          <p className="mt-1 text-sm text-slate-500 max-w-md mx-auto">
+            Please verify the roll number entered. You can click on any sample roll number above like 801, 802 (Class 8), 1001 (Class 10), or 1401 (Class 12A).
           </p>
         </div>
       ) : (
+        /* Search Performed And Student Found: Show Full Marksheet and Performance Area */
         <div className="mt-8 space-y-6">
           {/* Examination Selector Bar */}
           <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between print:hidden">

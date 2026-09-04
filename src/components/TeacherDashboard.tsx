@@ -59,6 +59,13 @@ import {
 } from '../data/mockDatabase';
 import { GOOGLE_APPS_SCRIPT_CODE } from '../data/googleAppsScriptCode';
 import { GoogleSettingsModal } from './GoogleSettingsModal';
+import { TeachersManager } from './TeachersManager';
+import { StudentsManager } from './StudentsManager';
+import { SubjectsManager } from './SubjectsManager';
+import { ExamsManager } from './ExamsManager';
+import { DEFAULT_TEACHERS, saveTeachers, saveStudents, saveExams } from '../data/mockDatabase';
+
+export type ManagementTab = 'merit' | 'teachers' | 'students' | 'subjects' | 'exams';
 
 interface TeacherDashboardProps {
   activeTeacher: TeacherUser;
@@ -67,6 +74,11 @@ interface TeacherDashboardProps {
   marks: MarkRecord[];
   subjectsMap: { [className: string]: string[] };
   googleSheetsState: GoogleSheetsSyncState;
+  teachers?: TeacherUser[];
+  onUpdateTeachers?: (newTeachers: TeacherUser[]) => void;
+  onUpdateStudents?: (newStudents: Student[]) => void;
+  onUpdateExams?: (newExams: Exam[]) => void;
+  initialManagementTab?: ManagementTab;
   onUpdateMarks: (newMarks: MarkRecord[]) => void;
   onAddStudent: (newStudent: Student) => void;
   onAddExam: (newExam: Exam) => void;
@@ -93,6 +105,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   marks,
   subjectsMap,
   googleSheetsState,
+  teachers = DEFAULT_TEACHERS,
+  onUpdateTeachers,
+  onUpdateStudents,
+  onUpdateExams,
+  initialManagementTab = 'merit',
   onUpdateMarks,
   onAddStudent,
   onAddExam,
@@ -107,6 +124,35 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   googleAccessToken,
   onImportData,
 }) => {
+  const [activeManagementTab, setActiveManagementTab] = useState<ManagementTab>(initialManagementTab);
+
+  const handleUpdateTeachersList = (updatedTeachers: TeacherUser[]) => {
+    if (onUpdateTeachers) {
+      onUpdateTeachers(updatedTeachers);
+    } else {
+      saveTeachers(updatedTeachers);
+    }
+  };
+
+  const handleUpdateStudentsList = (updatedStudents: Student[]) => {
+    if (onUpdateStudents) {
+      onUpdateStudents(updatedStudents);
+    } else if (onImportData) {
+      onImportData({ students: updatedStudents });
+    } else {
+      saveStudents(updatedStudents);
+    }
+  };
+
+  const handleUpdateExamsList = (updatedExams: Exam[]) => {
+    if (onUpdateExams) {
+      onUpdateExams(updatedExams);
+    } else if (onImportData) {
+      onImportData({ exams: updatedExams });
+    } else {
+      saveExams(updatedExams);
+    }
+  };
   // Available classes ordered strictly as per user-specified sequence
   const availableClasses = useMemo(() => {
     const set = new Set<string>();
@@ -864,8 +910,157 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         </div>
       )}
 
-      {/* Filters Bar: Class Selector & Examination Selector */}
-      <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between print:hidden">
+      {/* Primary Section Navigation Tabs */}
+      <div className="mt-6 mb-6 flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3.5 print:hidden">
+        <button
+          type="button"
+          id="tab-merit-list"
+          onClick={() => setActiveManagementTab('merit')}
+          className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-black transition ${
+            activeManagementTab === 'merit'
+              ? 'bg-slate-900 text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-2xs'
+          }`}
+        >
+          <Award className={`h-4 w-4 ${activeManagementTab === 'merit' ? 'text-amber-400' : 'text-slate-500'}`} />
+          <span>Class Merit List &amp; Marks</span>
+        </button>
+
+        <button
+          type="button"
+          id="tab-teacher-management"
+          onClick={() => setActiveManagementTab('teachers')}
+          className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-black transition ${
+            activeManagementTab === 'teachers'
+              ? 'bg-indigo-600 text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-2xs'
+          }`}
+        >
+          <Users className={`h-4 w-4 ${activeManagementTab === 'teachers' ? 'text-white' : 'text-indigo-600'}`} />
+          <span>Teacher Management</span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+              activeManagementTab === 'teachers' ? 'bg-indigo-700 text-white' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {teachers.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          id="tab-students"
+          onClick={() => setActiveManagementTab('students')}
+          className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-black transition ${
+            activeManagementTab === 'students'
+              ? 'bg-blue-600 text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-2xs'
+          }`}
+        >
+          <GraduationCap className={`h-4 w-4 ${activeManagementTab === 'students' ? 'text-white' : 'text-blue-600'}`} />
+          <span>Students</span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+              activeManagementTab === 'students' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {students.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          id="tab-subjects"
+          onClick={() => setActiveManagementTab('subjects')}
+          className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-black transition ${
+            activeManagementTab === 'subjects'
+              ? 'bg-purple-600 text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-2xs'
+          }`}
+        >
+          <BookOpen className={`h-4 w-4 ${activeManagementTab === 'subjects' ? 'text-white' : 'text-purple-600'}`} />
+          <span>Subjects</span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+              activeManagementTab === 'subjects' ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {Object.keys(subjectsMap).length} Classes
+          </span>
+        </button>
+
+        <button
+          type="button"
+          id="tab-exams"
+          onClick={() => setActiveManagementTab('exams')}
+          className={`flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-black transition ${
+            activeManagementTab === 'exams'
+              ? 'bg-amber-600 text-white shadow-md'
+              : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200 shadow-2xs'
+          }`}
+        >
+          <Calendar className={`h-4 w-4 ${activeManagementTab === 'exams' ? 'text-white' : 'text-amber-600'}`} />
+          <span>Exams</span>
+          <span
+            className={`rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+              activeManagementTab === 'exams' ? 'bg-amber-700 text-white' : 'bg-slate-100 text-slate-600'
+            }`}
+          >
+            {exams.length}
+          </span>
+        </button>
+      </div>
+
+      {/* Render Active Management View */}
+      {activeManagementTab === 'teachers' && (
+        <TeachersManager
+          teachers={teachers}
+          activeTeacher={activeTeacher}
+          onUpdateTeachers={handleUpdateTeachersList}
+          onSaveToDatabase={handleInitiateGoogleSync}
+        />
+      )}
+
+      {activeManagementTab === 'students' && (
+        <StudentsManager
+          students={students}
+          marks={marks}
+          onUpdateStudents={handleUpdateStudentsList}
+          onViewStudentResult={onViewStudentResult}
+          onSaveToDatabase={handleInitiateGoogleSync}
+          activeExamId={activeExam?.examId}
+        />
+      )}
+
+      {activeManagementTab === 'subjects' && (
+        <SubjectsManager
+          subjectsMap={subjectsMap}
+          onSaveSubjects={onSaveSubjects || ((cls, subs) => {})}
+          onSaveToDatabase={handleInitiateGoogleSync}
+        />
+      )}
+
+      {activeManagementTab === 'exams' && (
+        <ExamsManager
+          exams={exams}
+          students={students}
+          marks={marks}
+          subjectsMap={subjectsMap}
+          onUpdateExams={handleUpdateExamsList}
+          onDeleteExam={onDeleteExam}
+          onSelectExamForGrading={(examId, cls) => {
+            setSelectedClass(cls);
+            setSelectedExamId(examId);
+            setActiveManagementTab('merit');
+          }}
+          onSaveToDatabase={handleInitiateGoogleSync}
+        />
+      )}
+
+      {activeManagementTab === 'merit' && (
+        <>
+          {/* Filters Bar: Class Selector & Examination Selector */}
+          <div className="mt-2 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between print:hidden">
         <div className="flex flex-wrap items-center gap-3">
           {/* Class Selector */}
           <div className="flex items-center gap-2">
@@ -904,19 +1099,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </option>
               ))}
             </select>
-
-            {activeExam && (
-              <button
-                type="button"
-                id="delete-exam-action-btn"
-                onClick={() => setDeleteExamTarget(activeExam)}
-                title={`Delete exam "${activeExam.examName}" and all recorded student marks for this test`}
-                className="flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100 hover:border-rose-300 active:scale-95 transition shadow-2xs cursor-pointer"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Delete Exam</span>
-              </button>
-            )}
           </div>
         </div>
 
@@ -1574,6 +1756,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           )}
         </div>
       </div>
+      </>
+      )}
 
       {/* Edit Marks Modal */}
       {isEditMarksModalOpen && editingStudent && activeExam && (
@@ -1842,12 +2026,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         lastSyncedAt={googleSheetsState.lastSyncedAt}
       />
 
-      {/* Confirmation Modal for Google Sheets Sync (Workspace skill requirement) */}
+      {/* Confirmation Modal for Google Sheets Sync */}
       <ConfirmationModal
         isOpen={isConfirmSyncOpen}
-        title="Sync Database with Google Sheets?"
+        title="Save Data on Google Sheets?"
         message={`This will update the 5 database sheets (Students: ${students.length} records, Exams: ${exams.length} exams, Marks: ${marks.length} entries, Subjects, and Teachers) in your Google Drive. Existing sheet contents will be refreshed with current data.`}
-        confirmLabel="Sync to Google Sheets"
+        confirmLabel="Update Data"
         cancelLabel="Cancel"
         isLoading={isSyncing}
         onConfirm={handleExecuteGoogleSync}

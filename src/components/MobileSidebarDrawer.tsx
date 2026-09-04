@@ -11,6 +11,8 @@ import {
   ShieldAlert,
   ChevronRight,
   CheckCircle2,
+  RefreshCw,
+  Sheet,
 } from 'lucide-react';
 import { TeacherUser } from '../types';
 
@@ -27,6 +29,8 @@ interface MobileSidebarDrawerProps {
   onOpenAddExam: () => void;
   onSaveToDatabase: () => void;
   lastSyncedAt?: string | null;
+  isSyncing?: boolean;
+  onRefreshSync?: () => void;
 }
 
 export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
@@ -42,6 +46,8 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
   onOpenAddExam,
   onSaveToDatabase,
   lastSyncedAt,
+  isSyncing = false,
+  onRefreshSync,
 }) => {
   if (!isOpen) return null;
 
@@ -172,108 +178,186 @@ export const MobileSidebarDrawer: React.FC<MobileSidebarDrawerProps> = ({
             </button>
           </div>
 
-          {/* School Operations & Management Actions */}
-          <div className="space-y-1.5">
-            <span className="px-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
-              Quick Management
-            </span>
-
-            {/* Add Subject */}
-            <button
-              type="button"
-              id="sidebar-add-subject-btn"
-              onClick={() => {
-                onOpenAddSubject();
-                onClose();
-              }}
-              className="w-full flex items-center justify-between rounded-2xl p-3 text-left hover:bg-slate-50 text-slate-700 font-medium transition"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
-                  <BookOpen className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900">Add Subject</div>
-                  <div className="text-[11px] text-slate-500">Configure class subjects</div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-slate-400" />
-            </button>
-
-            {/* Add Student */}
-            <button
-              type="button"
-              id="sidebar-add-student-btn"
-              onClick={() => {
-                onOpenAddStudent();
-                onClose();
-              }}
-              className="w-full flex items-center justify-between rounded-2xl p-3 text-left hover:bg-slate-50 text-slate-700 font-medium transition"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                  <UserPlus className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900">Add Student</div>
-                  <div className="text-[11px] text-slate-500">Register student to roster</div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-slate-400" />
-            </button>
-
-            {/* Add Exam */}
-            <button
-              type="button"
-              id="sidebar-add-exam-btn"
-              onClick={() => {
-                onOpenAddExam();
-                onClose();
-              }}
-              className="w-full flex items-center justify-between rounded-2xl p-3 text-left hover:bg-slate-50 text-slate-700 font-medium transition"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                  <CalendarPlus className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-slate-900">Add Exam</div>
-                  <div className="text-[11px] text-slate-500">Create new test/exam</div>
-                </div>
-              </div>
-              <ChevronRight className="h-4 w-4 text-slate-400" />
-            </button>
-
-            {/* Save to Database */}
-            <button
-              type="button"
-              id="sidebar-save-database-btn"
-              onClick={() => {
-                onSaveToDatabase();
-                onClose();
-              }}
-              className="w-full flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 text-left hover:bg-emerald-100/70 transition shadow-2xs"
-            >
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
-                  <Database className="h-5 w-5" />
-                </div>
-                <div>
-                  <div className="text-sm font-extrabold text-emerald-950">Save to Database</div>
-                  <div className="text-[11px] text-emerald-700 flex items-center gap-1">
-                    {lastSyncedAt ? (
-                      <>
-                        <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                        <span>Synced at {lastSyncedAt}</span>
-                      </>
+          {/* Live Data Sync Section (For all users & teachers) */}
+          {onRefreshSync && (
+            <div className="space-y-1.5">
+              <span className="px-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Live Google Sheet Sync
+              </span>
+              <button
+                type="button"
+                id="sidebar-fetch-sheets-btn"
+                onClick={() => {
+                  onRefreshSync();
+                  onClose();
+                }}
+                disabled={isSyncing}
+                className="w-full flex items-center justify-between rounded-2xl border border-indigo-100 bg-indigo-50/60 p-3 text-left hover:bg-indigo-100/70 transition cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
+                    {isSyncing ? (
+                      <RefreshCw className="h-5 w-5 animate-spin" />
                     ) : (
-                      <span>Sync marks to Google Sheets</span>
+                      <Sheet className="h-5 w-5" />
                     )}
                   </div>
+                  <div>
+                    <div className="text-sm font-bold text-indigo-950">
+                      {isSyncing ? 'Fetching Live Data...' : 'Refresh Sheet Data'}
+                    </div>
+                    <div className="text-[11px] text-indigo-700 flex items-center gap-1">
+                      {lastSyncedAt ? (
+                        <>
+                          <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                          <span>Last synced {lastSyncedAt}</span>
+                        </>
+                      ) : (
+                        <span>Fetch marks from Google Sheets</span>
+                      )}
+                    </div>
+                  </div>
                 </div>
+                <ChevronRight className="h-4 w-4 text-indigo-400" />
+              </button>
+            </div>
+          )}
+
+          {/* School Operations & Management Actions (Accessible after Teacher login) */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between px-2">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Teacher Management
+              </span>
+              {activeTeacher ? (
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[9px] font-bold text-emerald-800">
+                  Logged In
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-800">
+                  Staff Only
+                </span>
+              )}
+            </div>
+
+            {activeTeacher ? (
+              <>
+                {/* Add Subject */}
+                <button
+                  type="button"
+                  id="sidebar-add-subject-btn"
+                  onClick={() => {
+                    onOpenAddSubject();
+                    onClose();
+                  }}
+                  className="w-full flex items-center justify-between rounded-2xl p-3 text-left hover:bg-slate-50 text-slate-700 font-medium transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50 text-purple-600">
+                      <BookOpen className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-900">Add Subject</div>
+                      <div className="text-[11px] text-slate-500">Configure class subjects</div>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                </button>
+
+                {/* Add Student */}
+                <button
+                  type="button"
+                  id="sidebar-add-student-btn"
+                  onClick={() => {
+                    onOpenAddStudent();
+                    onClose();
+                  }}
+                  className="w-full flex items-center justify-between rounded-2xl p-3 text-left hover:bg-slate-50 text-slate-700 font-medium transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
+                      <UserPlus className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-900">Add Student</div>
+                      <div className="text-[11px] text-slate-500">Register student to roster</div>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                </button>
+
+                {/* Add Exam */}
+                <button
+                  type="button"
+                  id="sidebar-add-exam-btn"
+                  onClick={() => {
+                    onOpenAddExam();
+                    onClose();
+                  }}
+                  className="w-full flex items-center justify-between rounded-2xl p-3 text-left hover:bg-slate-50 text-slate-700 font-medium transition cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+                      <CalendarPlus className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-bold text-slate-900">Add Exam</div>
+                      <div className="text-[11px] text-slate-500">Create new test/exam</div>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-slate-400" />
+                </button>
+
+                {/* Save to Database */}
+                <button
+                  type="button"
+                  id="sidebar-save-database-btn"
+                  onClick={() => {
+                    onSaveToDatabase();
+                    onClose();
+                  }}
+                  className="w-full flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50/70 p-3 text-left hover:bg-emerald-100/70 transition shadow-2xs cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+                      <Database className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-extrabold text-emerald-950">Save to Database</div>
+                      <div className="text-[11px] text-emerald-700 flex items-center gap-1">
+                        {lastSyncedAt ? (
+                          <>
+                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                            <span>Synced at {lastSyncedAt}</span>
+                          </>
+                        ) : (
+                          <span>Sync marks to Google Sheets</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-emerald-600" />
+                </button>
+              </>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-3.5 text-center">
+                <ShieldAlert className="mx-auto h-6 w-6 text-amber-500 mb-1.5" />
+                <p className="text-xs font-bold text-slate-800">Teacher Login Required</p>
+                <p className="mt-1 text-[11px] text-slate-500 leading-tight">
+                  Sign in with Staff PIN to add subjects, register students, create exams, and sync database.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onOpenTeacherLogin();
+                    onClose();
+                  }}
+                  className="mt-2.5 inline-flex items-center justify-center rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-slate-800 transition cursor-pointer"
+                >
+                  Teacher Sign In
+                </button>
               </div>
-              <ChevronRight className="h-4 w-4 text-emerald-600" />
-            </button>
+            )}
           </div>
         </div>
 

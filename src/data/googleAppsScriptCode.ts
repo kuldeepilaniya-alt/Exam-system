@@ -95,18 +95,215 @@ function doPost(e) {
 }
 
 /**
- * Handles GET requests (for browser validation)
+ * Handles GET requests: returns full database JSON when called by the web application
  */
 function doGet(e) {
-  var ss = getSpreadsheet();
-  var sheetName = ss ? ss.getName() : "Unknown";
+  try {
+    var ss = getSpreadsheet();
+    if (!ss) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        message: "Active Spreadsheet not found. If using standalone script, specify SPREADSHEET_ID."
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var students = readStudentsFromSheet(ss);
+    var exams = readExamsFromSheet(ss);
+    var marks = readMarksFromSheet(ss);
+    var subjectsMap = readSubjectsFromSheet(ss);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "success",
+      sheetName: ss.getName(),
+      students: students,
+      exams: exams,
+      marks: marks,
+      subjectsMap: subjectsMap,
+      serverTime: new Date().toISOString()
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Reads Students sheet into structured objects
+ */
+function readStudentsFromSheet(ss) {
+  var sheet = ss.getSheetByName("Students");
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var data = sheet.getDataRange().getValues();
+  var header = data[0].map(function (h) { return String(h || "").trim().toLowerCase(); });
   
-  return ContentService.createTextOutput(JSON.stringify({
-    status: "active",
-    message: "MarksDB Google Apps Script Webhook is active and listening for POST requests!",
-    connectedSpreadsheet: sheetName,
-    serverTime: new Date().toString()
-  })).setMimeType(ContentService.MimeType.JSON);
+  var rollIdx = header.indexOf("roll no");
+  if (rollIdx === -1) rollIdx = header.indexOf("rollno");
+  if (rollIdx === -1) rollIdx = 0;
+
+  var nameIdx = header.indexOf("student name");
+  if (nameIdx === -1) nameIdx = header.indexOf("name");
+
+  var classIdx = header.indexOf("class");
+  var fatherIdx = header.indexOf("father's name");
+  if (fatherIdx === -1) fatherIdx = header.indexOf("fathername");
+  
+  var motherIdx = header.indexOf("mother's name");
+  if (motherIdx === -1) motherIdx = header.indexOf("mothername");
+
+  var dobIdx = header.indexOf("date of birth");
+  if (dobIdx === -1) dobIdx = header.indexOf("dob");
+
+  var contactIdx = header.indexOf("contact number");
+  if (contactIdx === -1) contactIdx = header.indexOf("contact");
+
+  var list = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var roll = String(row[rollIdx] || "").trim();
+    if (!roll) continue;
+    list.push({
+      rollNo: roll,
+      name: nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : "Student " + roll,
+      className: classIdx !== -1 && row[classIdx] ? String(row[classIdx]).trim() : "10A",
+      fatherName: fatherIdx !== -1 && row[fatherIdx] ? String(row[fatherIdx]).trim() : "",
+      motherName: motherIdx !== -1 && row[motherIdx] ? String(row[motherIdx]).trim() : undefined,
+      dateOfBirth: dobIdx !== -1 && row[dobIdx] ? String(row[dobIdx]).trim() : undefined,
+      contactNumber: contactIdx !== -1 && row[contactIdx] ? String(row[contactIdx]).trim() : undefined
+    });
+  }
+  return list;
+}
+
+/**
+ * Reads Exams sheet into structured objects
+ */
+function readExamsFromSheet(ss) {
+  var sheet = ss.getSheetByName("Exams");
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var data = sheet.getDataRange().getValues();
+  var header = data[0].map(function (h) { return String(h || "").trim().toLowerCase(); });
+
+  var idIdx = header.indexOf("exam id");
+  if (idIdx === -1) idIdx = header.indexOf("examid");
+  if (idIdx === -1) idIdx = 0;
+
+  var nameIdx = header.indexOf("exam name");
+  if (nameIdx === -1) nameIdx = header.indexOf("examname");
+
+  var classIdx = header.indexOf("class");
+  var maxIdx = header.indexOf("max marks per subject");
+  if (maxIdx === -1) maxIdx = header.indexOf("maxmarks");
+
+  var dateIdx = header.indexOf("date");
+  var yearIdx = header.indexOf("academic year");
+  if (yearIdx === -1) yearIdx = header.indexOf("academicyear");
+
+  var list = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var id = String(row[idIdx] || "").trim();
+    if (!id) continue;
+    list.push({
+      examId: id,
+      examName: nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : id,
+      className: classIdx !== -1 && row[classIdx] ? String(row[classIdx]).trim() : "10A",
+      maxMarksPerSubject: maxIdx !== -1 && Number(row[maxIdx]) ? Number(row[maxIdx]) : 100,
+      date: dateIdx !== -1 && row[dateIdx] ? String(row[dateIdx]).trim() : "",
+      academicYear: yearIdx !== -1 && row[yearIdx] ? String(row[yearIdx]).trim() : "2026-27"
+    });
+  }
+  return list;
+}
+
+/**
+ * Reads Marks sheet into structured objects
+ */
+function readMarksFromSheet(ss) {
+  var sheet = ss.getSheetByName("Marks");
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var data = sheet.getDataRange().getValues();
+  var headerRow = data[0];
+  var header = headerRow.map(function (h) { return String(h || "").trim().toLowerCase(); });
+
+  var examIdIdx = header.indexOf("exam id");
+  if (examIdIdx === -1) examIdIdx = header.indexOf("examid");
+  if (examIdIdx === -1) examIdIdx = 0;
+
+  var rollNoIdx = header.indexOf("roll no");
+  if (rollNoIdx === -1) rollNoIdx = header.indexOf("rollno");
+  if (rollNoIdx === -1) rollNoIdx = 1;
+
+  var subjectsIdx = header.indexOf("subjects");
+  var marksIdx = header.indexOf("marks obtained");
+  if (marksIdx === -1) marksIdx = header.indexOf("marksobtained");
+
+  var remarksIdx = header.indexOf("teacher remarks");
+  if (remarksIdx === -1) remarksIdx = header.indexOf("remarks");
+
+  var ignored = [
+    "exam id", "examid", "roll no", "rollno", "student name", "name",
+    "class", "subjects", "marks obtained", "marksobtained", "total marks",
+    "total", "maxtotal", "percentage", "percent", "%", "rank", "teacher remarks", "remarks"
+  ];
+
+  var list = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var eId = String(row[examIdIdx] || "").trim();
+    var roll = String(row[rollNoIdx] || "").trim();
+    if (!eId || !roll) continue;
+
+    var marksMap = {};
+    if (subjectsIdx !== -1 && marksIdx !== -1) {
+      var subs = String(row[subjectsIdx] || "").split(/[,;\n]/).map(function (s) { return s.trim(); }).filter(Boolean);
+      var mrks = String(row[marksIdx] || "").split(/[,;\n]/).map(function (s) { return s.trim(); }).filter(Boolean);
+      for (var s = 0; s < subs.length; s++) {
+        var val = Number(mrks[s] !== undefined ? mrks[s] : 0);
+        marksMap[subs[s]] = isNaN(val) ? 0 : val;
+      }
+    } else {
+      for (var col = 0; col < headerRow.length; col++) {
+        var hName = String(headerRow[col] || "").trim();
+        if (ignored.indexOf(hName.toLowerCase()) === -1 && row[col] !== undefined && row[col] !== "") {
+          var num = Number(row[col]);
+          if (!isNaN(num)) marksMap[hName] = num;
+        }
+      }
+    }
+
+    list.push({
+      examId: eId,
+      rollNo: roll,
+      marks: marksMap,
+      remarks: remarksIdx !== -1 && row[remarksIdx] ? String(row[remarksIdx]).trim() : undefined
+    });
+  }
+  return list;
+}
+
+/**
+ * Reads Subjects sheet into class curriculum map
+ */
+function readSubjectsFromSheet(ss) {
+  var sheet = ss.getSheetByName("Subjects");
+  if (!sheet || sheet.getLastRow() < 2) return {};
+  var data = sheet.getDataRange().getValues();
+  var map = {};
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (row[0] && row.length > 1) {
+      var cls = String(row[0]).trim();
+      var rawSub = row.length > 2 && isNaN(Number(row[2])) && !isNaN(Number(row[1])) ? row[2] : row[1];
+      var list = String(rawSub).split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+      if (list.length > 0) {
+        map[cls] = list;
+      }
+    }
+  }
+  return map;
 }
 
 // ----------------------------------------------------------------------------

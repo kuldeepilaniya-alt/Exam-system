@@ -4,7 +4,10 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  RefreshCw,
+  Sheet,
   ShieldAlert,
+  CheckCircle2,
 } from 'lucide-react';
 import { TeacherUser } from '../types';
 
@@ -15,6 +18,9 @@ interface NavbarProps {
   onOpenTeacherLogin: () => void;
   onTeacherLogout: () => void;
   onToggleMobileSidebar: () => void;
+  isSyncing?: boolean;
+  lastSyncedAt?: string | null;
+  onRefreshSync?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -24,6 +30,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenTeacherLogin,
   onTeacherLogout,
   onToggleMobileSidebar,
+  isSyncing = false,
+  lastSyncedAt,
+  onRefreshSync,
 }) => {
   return (
     <header className="sticky top-0 z-40 h-16 border-b border-slate-200 bg-white shadow-xs print:hidden">
@@ -55,8 +64,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Center / Navigation Switcher & Status */}
-        <div className="flex items-center gap-3 sm:gap-6">
+        {/* Center / Navigation Switcher & Status (Hidden on mobile, visible on sm and up) */}
+        <div className="hidden sm:flex items-center gap-3 sm:gap-6">
           {/* Navigation Mode Switcher */}
           <div className="flex rounded-xl bg-slate-100 p-1">
             <button
@@ -98,11 +107,49 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
+          {/* Live Google Sheets Sync Indicator */}
+          {onRefreshSync && (
+            <button
+              type="button"
+              id="nav-refresh-sync-btn"
+              onClick={onRefreshSync}
+              disabled={isSyncing}
+              title={
+                isSyncing
+                  ? 'Fetching latest marks from Google Sheets...'
+                  : lastSyncedAt
+                  ? `Google Sheets Live Synced (Updated ${lastSyncedAt}). Click to refresh now.`
+                  : 'Click to fetch latest data from Google Sheet'
+              }
+              className={`hidden md:flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-[11px] font-semibold transition ${
+                isSyncing
+                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                  : lastSyncedAt
+                  ? 'border-emerald-200 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100'
+                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {isSyncing ? (
+                <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-600" />
+              ) : lastSyncedAt ? (
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+              ) : (
+                <Sheet className="h-3.5 w-3.5 text-slate-500" />
+              )}
+              <span>
+                {isSyncing
+                  ? 'Syncing Sheets...'
+                  : lastSyncedAt
+                  ? `Sheet Synced: ${lastSyncedAt}`
+                  : 'Fetch Sheets'}
+              </span>
+            </button>
+          )}
+
           {/* Session & Online Status Indicator */}
-          <div className="hidden lg:flex items-center gap-6 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          <div className="hidden xl:flex items-center gap-4 text-[11px] font-bold uppercase tracking-wider text-slate-500">
             <div className="flex flex-col items-end leading-tight">
               <span className="text-slate-900 font-bold">Session 2026-27</span>
-              
             </div>
             <div className="h-7 w-[1px] bg-slate-200"></div>
             <div className="flex items-center gap-2">

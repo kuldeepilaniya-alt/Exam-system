@@ -33,7 +33,7 @@ export const AddStudentModal: React.FC<AddStudentModalProps> = ({
       name: name.trim(),
       fatherName: fatherName.trim() || 'N/A',
       className: selectedClass,
-      contact: contact.trim() || undefined,
+      contactNumber: contact.trim() || undefined,
     };
 
     onAddStudent(newStudent);
