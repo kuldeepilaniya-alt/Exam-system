@@ -512,28 +512,16 @@ export async function syncDataToGoogleSheet(
     return String(a.rollNo).localeCompare(String(b.rollNo), undefined, { numeric: true });
   });
 
-  // 1. Students Sheet
+  // 1. Students Sheet (Sequence: Class, Roll No, Student Name, Father's Name, Contact Number)
   const studentValues = [
-    ['Class', 'RollNo', 'Name', 'FatherName', 'DateOfBirth', 'ContactNumber'],
-    ...sortedStudents.map((s) => {
-      let formattedDob = '';
-      if (s.dateOfBirth) {
-        const parts = s.dateOfBirth.split('-');
-        if (parts.length === 3) {
-          formattedDob = `${parts[2]}/${parts[1]}/${parts[0]}`;
-        } else {
-          formattedDob = s.dateOfBirth;
-        }
-      }
-      return [
-        s.className,
-        s.rollNo,
-        s.name,
-        s.fatherName,
-        formattedDob,
-        s.contactNumber || '',
-      ];
-    }),
+    ['Class', 'Roll No', 'Student Name', "Father's Name", 'Contact Number'],
+    ...sortedStudents.map((s) => [
+      s.className,
+      s.rollNo,
+      s.name,
+      s.fatherName || '',
+      s.contactNumber || '',
+    ]),
   ];
 
   // 2. Exams Sheet

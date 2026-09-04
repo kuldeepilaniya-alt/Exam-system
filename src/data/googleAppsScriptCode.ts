@@ -132,6 +132,7 @@ function doGet(e) {
 
 /**
  * Reads Students sheet into structured objects
+ * Sequence: Class, Roll No, Student Name, Father's Name, Contact Number
  */
 function readStudentsFromSheet(ss) {
   var sheet = ss.getSheetByName("Students");
@@ -139,38 +140,41 @@ function readStudentsFromSheet(ss) {
   var data = sheet.getDataRange().getValues();
   var header = data[0].map(function (h) { return String(h || "").trim().toLowerCase(); });
   
+  var classIdx = header.indexOf("class");
+  if (classIdx === -1) classIdx = 0;
+
   var rollIdx = header.indexOf("roll no");
   if (rollIdx === -1) rollIdx = header.indexOf("rollno");
-  if (rollIdx === -1) rollIdx = 0;
+  if (rollIdx === -1) rollIdx = header.indexOf("roll");
+  if (rollIdx === -1) rollIdx = 1;
 
   var nameIdx = header.indexOf("student name");
   if (nameIdx === -1) nameIdx = header.indexOf("name");
+  if (nameIdx === -1) nameIdx = 2;
 
-  var classIdx = header.indexOf("class");
   var fatherIdx = header.indexOf("father's name");
   if (fatherIdx === -1) fatherIdx = header.indexOf("fathername");
-  
-  var motherIdx = header.indexOf("mother's name");
-  if (motherIdx === -1) motherIdx = header.indexOf("mothername");
-
-  var dobIdx = header.indexOf("date of birth");
-  if (dobIdx === -1) dobIdx = header.indexOf("dob");
+  if (fatherIdx === -1) fatherIdx = header.indexOf("father's");
+  if (fatherIdx === -1) fatherIdx = 3;
 
   var contactIdx = header.indexOf("contact number");
   if (contactIdx === -1) contactIdx = header.indexOf("contact");
+  if (contactIdx === -1) contactIdx = header.indexOf("mobile");
+  if (contactIdx === -1) contactIdx = header.indexOf("phone");
+  if (contactIdx === -1) contactIdx = 4;
 
   var list = [];
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
     var roll = String(row[rollIdx] || "").trim();
-    if (!roll) continue;
+    var name = nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : "";
+    if (!roll && !name) continue;
+
     list.push({
-      rollNo: roll,
-      name: nameIdx !== -1 && row[nameIdx] ? String(row[nameIdx]).trim() : "Student " + roll,
       className: classIdx !== -1 && row[classIdx] ? String(row[classIdx]).trim() : "10A",
+      rollNo: roll || String(i),
+      name: name || "Student " + (roll || i),
       fatherName: fatherIdx !== -1 && row[fatherIdx] ? String(row[fatherIdx]).trim() : "",
-      motherName: motherIdx !== -1 && row[motherIdx] ? String(row[motherIdx]).trim() : undefined,
-      dateOfBirth: dobIdx !== -1 && row[dobIdx] ? String(row[dobIdx]).trim() : undefined,
       contactNumber: contactIdx !== -1 && row[contactIdx] ? String(row[contactIdx]).trim() : undefined
     });
   }
@@ -258,8 +262,8 @@ function readMarksFromSheet(ss) {
 
     var marksMap = {};
     if (subjectsIdx !== -1 && marksIdx !== -1) {
-      var subs = String(row[subjectsIdx] || "").split(/[,;\n]/).map(function (s) { return s.trim(); }).filter(Boolean);
-      var mrks = String(row[marksIdx] || "").split(/[,;\n]/).map(function (s) { return s.trim(); }).filter(Boolean);
+      var subs = String(row[subjectsIdx] || "").split(new RegExp("[,;\\n]")).map(function (s) { return s.trim(); }).filter(Boolean);
+      var mrks = String(row[marksIdx] || "").split(new RegExp("[,;\\n]")).map(function (s) { return s.trim(); }).filter(Boolean);
       for (var s = 0; s < subs.length; s++) {
         var val = Number(mrks[s] !== undefined ? mrks[s] : 0);
         marksMap[subs[s]] = isNaN(val) ? 0 : val;
@@ -332,18 +336,17 @@ function applyHeaderStyles(sheet, headers) {
 
 /**
  * 1. Synchronize Students Sheet
+ * Sequence: Class, Roll No, Student Name, Father's Name, Contact Number
  */
 function syncStudents(ss, students) {
   var sheet = getOrCreateSheet(ss, "Students");
   sheet.clear();
 
   var headers = [
+    "Class",
     "Roll No",
     "Student Name",
-    "Class",
     "Father's Name",
-    "Mother's Name",
-    "Date of Birth",
     "Contact Number"
   ];
   applyHeaderStyles(sheet, headers);
@@ -352,22 +355,20 @@ function syncStudents(ss, students) {
 
   var rows = students.map(function (s) {
     return [
+      s.className || "",
       s.rollNo ? String(s.rollNo) : "",
       s.name || "",
-      s.className || "",
       s.fatherName || "",
-      s.motherName || "",
-      s.dateOfBirth || s.dob || "",
       s.contactNumber ? String(s.contactNumber) : ""
     ];
   });
 
   sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
   
+  // Center alignment for Class, Roll No, Contact Number
   sheet.getRange(2, 1, rows.length, 1).setHorizontalAlignment("center");
-  sheet.getRange(2, 3, rows.length, 1).setHorizontalAlignment("center");
-  sheet.getRange(2, 6, rows.length, 1).setHorizontalAlignment("center");
-  sheet.getRange(2, 7, rows.length, 1).setHorizontalAlignment("center");
+  sheet.getRange(2, 2, rows.length, 1).setHorizontalAlignment("center");
+  sheet.getRange(2, 5, rows.length, 1).setHorizontalAlignment("center");
 
   for (var c = 1; c <= headers.length; c++) {
     sheet.autoResizeColumn(c);

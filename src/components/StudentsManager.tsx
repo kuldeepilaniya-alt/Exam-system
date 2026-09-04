@@ -51,9 +51,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
   const [name, setName] = useState('');
   const [className, setClassName] = useState('10A');
   const [fatherName, setFatherName] = useState('');
-  const [motherName, setMotherName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
-  const [gender, setGender] = useState('Male');
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
   const handleOpenAddModal = () => {
@@ -69,9 +67,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
     setName('');
     setClassName(classToUse);
     setFatherName('');
-    setMotherName('');
     setContactNumber('');
-    setGender('Male');
     setIsAddModalOpen(true);
   };
 
@@ -81,9 +77,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
     setName(student.name);
     setClassName(student.className);
     setFatherName(student.fatherName || '');
-    setMotherName(student.motherName || '');
     setContactNumber(student.contactNumber || '');
-    setGender(student.gender || 'Male');
   };
 
   const handleSaveAddStudent = (e: React.FormEvent) => {
@@ -107,9 +101,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
       name: name.trim(),
       className: className,
       fatherName: fatherName.trim() || 'N/A',
-      motherName: motherName.trim() || undefined,
       contactNumber: contactNumber.trim() || undefined,
-      gender: gender || 'Male',
     };
 
     const updated = [...students, newStudent];
@@ -146,9 +138,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
           name: name.trim(),
           className: className,
           fatherName: fatherName.trim() || 'N/A',
-          motherName: motherName.trim() || undefined,
           contactNumber: contactNumber.trim() || undefined,
-          gender: gender || 'Male',
         };
       }
       return s;
@@ -185,7 +175,6 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
           s.rollNo.toString().includes(q) ||
           s.name.toLowerCase().includes(q) ||
           (s.fatherName && s.fatherName.toLowerCase().includes(q)) ||
-          (s.motherName && s.motherName.toLowerCase().includes(q)) ||
           (s.contactNumber && s.contactNumber.includes(q)) ||
           s.className.toLowerCase().includes(q);
 
@@ -208,17 +197,15 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
       });
   }, [students, selectedClass, searchQuery, sortBy]);
 
-  // Export CSV of students
+  // Export CSV of students (Exact Sequence: Class, Roll No, Student Name, Father's Name, Contact Number)
   const handleExportRosterCSV = () => {
-    const headers = ['Roll No', 'Student Name', 'Class', 'Father Name', 'Mother Name', 'Contact Number', 'Gender'];
+    const headers = ['Class', 'Roll No', 'Student Name', "Father's Name", 'Contact Number'];
     const rows = filteredStudents.map((s) => [
+      `"${s.className}"`,
       s.rollNo,
       `"${s.name}"`,
-      `"${s.className}"`,
       `"${s.fatherName || ''}"`,
-      `"${s.motherName || ''}"`,
       `"${s.contactNumber || ''}"`,
-      `"${s.gender || 'Male'}"`,
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
@@ -375,12 +362,11 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/80 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <th className="py-3.5 px-4 text-center">#</th>
+                <th className="py-3.5 px-3">Class</th>
                 <th className="py-3.5 px-4">Roll No</th>
                 <th className="py-3.5 px-4">Student Name</th>
-                <th className="py-3.5 px-3">Class</th>
                 <th className="py-3.5 px-4">Father&apos;s Name</th>
-                <th className="py-3.5 px-4 hidden md:table-cell">Mother&apos;s Name</th>
-                <th className="py-3.5 px-4 hidden sm:table-cell">Contact Mobile</th>
+                <th className="py-3.5 px-4 hidden sm:table-cell">Contact Number</th>
                 <th className="py-3.5 px-4 text-center">Marks Recorded</th>
                 <th className="py-3.5 px-5 text-right">Actions</th>
               </tr>
@@ -388,7 +374,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
             <tbody className="divide-y divide-slate-100">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-12 text-center text-slate-400 font-medium text-xs">
+                  <td colSpan={8} className="py-12 text-center text-slate-400 font-medium text-xs">
                     No students found matching your search.
                   </td>
                 </tr>
@@ -405,19 +391,6 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
                         {idx + 1}
                       </td>
 
-                      {/* Roll No */}
-                      <td className="py-3.5 px-4 font-mono font-bold text-blue-600">
-                        #{s.rollNo}
-                      </td>
-
-                      {/* Name */}
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-900 whitespace-nowrap">{s.name}</div>
-                        {s.gender && (
-                          <span className="text-[10px] text-slate-400 font-medium">{s.gender}</span>
-                        )}
-                      </td>
-
                       {/* Class Badge */}
                       <td className="py-3.5 px-3">
                         <span className="inline-block rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-extrabold text-slate-800">
@@ -425,17 +398,22 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
                         </span>
                       </td>
 
-                      {/* Father */}
+                      {/* Roll No */}
+                      <td className="py-3.5 px-4 font-mono font-bold text-blue-600">
+                        #{s.rollNo}
+                      </td>
+
+                      {/* Student Name */}
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-slate-900 whitespace-nowrap">{s.name}</div>
+                      </td>
+
+                      {/* Father's Name */}
                       <td className="py-3.5 px-4 text-xs font-medium text-slate-700 whitespace-nowrap">
                         {s.fatherName || '-'}
                       </td>
 
-                      {/* Mother */}
-                      <td className="py-3.5 px-4 text-xs font-medium text-slate-500 hidden md:table-cell whitespace-nowrap">
-                        {s.motherName || '-'}
-                      </td>
-
-                      {/* Contact */}
+                      {/* Contact Number */}
                       <td className="py-3.5 px-4 text-xs font-mono text-slate-600 hidden sm:table-cell">
                         {s.contactNumber ? (
                           <div className="flex items-center gap-1">
@@ -506,7 +484,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
       {/* Add Student Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
@@ -528,7 +506,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSaveAddStudent} className="mt-4 space-y-4">
+            <form onSubmit={handleSaveAddStudent} className="mt-4 space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
@@ -564,7 +542,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
 
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                  Full Student Name *
+                  Student Name *
                 </label>
                 <input
                   type="text"
@@ -576,63 +554,30 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    Father&apos;s Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Ramesh Kumar"
-                    value={fatherName}
-                    onChange={(e) => setFatherName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    Mother&apos;s Name
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Sunita Devi"
-                    value={motherName}
-                    onChange={(e) => setMotherName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-medium"
-                  />
-                </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                  Father&apos;s Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Ramesh Kumar"
+                  value={fatherName}
+                  onChange={(e) => setFatherName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-medium"
+                />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    Contact Mobile
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="e.g. 9829012345"
-                    value={contactNumber}
-                    onChange={(e) => setContactNumber(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    Gender
-                  </label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-medium"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                  Contact Number
+                </label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 9829012345"
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-mono"
+                />
               </div>
 
               <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
@@ -658,7 +603,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
       {/* Edit Student Modal */}
       {editingStudent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
@@ -682,7 +627,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
               </button>
             </div>
 
-            <form onSubmit={handleSaveEditStudent} className="mt-4 space-y-4">
+            <form onSubmit={handleSaveEditStudent} className="mt-4 space-y-3.5">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
@@ -717,7 +662,7 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
 
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                  Full Student Name *
+                  Student Name *
                 </label>
                 <input
                   type="text"
@@ -728,59 +673,28 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    Father&apos;s Name
-                  </label>
-                  <input
-                    type="text"
-                    value={fatherName}
-                    onChange={(e) => setFatherName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-medium"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    Mother&apos;s Name
-                  </label>
-                  <input
-                    type="text"
-                    value={motherName}
-                    onChange={(e) => setMotherName(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-medium"
-                  />
-                </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                  Father&apos;s Name
+                </label>
+                <input
+                  type="text"
+                  value={fatherName}
+                  onChange={(e) => setFatherName(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-medium"
+                />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    Contact Mobile
-                  </label>
-                  <input
-                    type="tel"
-                    value={contactNumber}
-                    onChange={(e) => setContactNumber(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                    Gender
-                  </label>
-                  <select
-                    value={gender}
-                    onChange={(e) => setGender(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-medium"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                  Contact Number
+                </label>
+                <input
+                  type="tel"
+                  value={contactNumber}
+                  onChange={(e) => setContactNumber(e.target.value)}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-hidden transition font-mono"
+                />
               </div>
 
               <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
