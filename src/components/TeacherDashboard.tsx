@@ -850,11 +850,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             type="button"
             id="print-merit-list-btn"
             onClick={() => window.print()}
-            title="Print Class Merit List"
+            title="Print or Save as PDF"
             className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition"
           >
             <Printer className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Print</span>
+            <span className="hidden sm:inline">Print / PDF</span>
           </button>
         </div>
       </div>

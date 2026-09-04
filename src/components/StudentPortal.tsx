@@ -198,7 +198,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition"
             >
               <Printer className="h-3.5 w-3.5" />
-              <span>Print Official Marksheet</span>
+              <span>Print / Save to PDF</span>
             </button>
           </div>
 
@@ -210,11 +210,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
             >
               {/* Header Badge */}
               <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-6 sm:px-10 text-center">
-                <div className="flex justify-center mb-2">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-white font-bold text-xl shadow-sm">
-                    G
-                  </div>
-                </div>
                 <h2 className="text-xl font-extrabold tracking-tight text-slate-900 uppercase sm:text-2xl">
                   Govt. Sr. Sec. School, Sanwaloda Purohitan, Sikar
                 </h2>
@@ -227,7 +222,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               </div>
 
               {/* Student Metadata Card */}
-              <div className="grid grid-cols-2 gap-4 border-b border-slate-200 bg-white px-6 py-5 sm:grid-cols-4 sm:px-10">
+              <div className="grid grid-cols-2 gap-4 border-b border-slate-200 bg-white px-6 py-5 sm:grid-cols-4 sm:px-10 text-center">
                 <div>
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Class &amp; Section</div>
                   <div className="text-sm font-bold text-slate-900 mt-1">
@@ -242,7 +237,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 </div>
                 <div>
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Student Name</div>
-                  <div className="text-sm font-bold text-slate-900 flex items-center gap-1.5 mt-1">
+                  <div className="text-sm font-bold text-slate-900 flex items-center justify-center gap-1.5 mt-1">
                     <User className="h-3.5 w-3.5 text-blue-600" />
                     {currentResult.student.name}
                   </div>
@@ -420,7 +415,14 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                     <button
                       key={res.exam.examId}
                       type="button"
-                      onClick={() => setSelectedExamId(res.exam.examId)}
+                      onClick={() => {
+                        setSelectedExamId(res.exam.examId);
+                        const el = document.getElementById('official-marksheet-card');
+                        if (el) {
+                          const y = el.getBoundingClientRect().top + window.scrollY - 80;
+                          window.scrollTo({ top: y, behavior: 'smooth' });
+                        }
+                      }}
                       className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition ${
                         isCurrent
                           ? 'border-emerald-500 bg-emerald-50/40 shadow-xs'

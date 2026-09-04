@@ -92,17 +92,39 @@ export async function syncDataToGoogleSheet(
 ): Promise<void> {
   // First, let's build the rows for each tab
 
+  const sortedStudents = [...data.students].sort((a, b) => {
+    const idxA = ORDERED_CLASSES.indexOf(a.className as any);
+    const idxB = ORDERED_CLASSES.indexOf(b.className as any);
+    if (idxA !== idxB) {
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    }
+    return String(a.rollNo).localeCompare(String(b.rollNo), undefined, { numeric: true });
+  });
+
   // 1. Students Sheet
   const studentValues = [
-    ['RollNo', 'Name', 'Class', 'FatherName', 'DateOfBirth', 'ContactNumber'],
-    ...data.students.map((s) => [
-      s.rollNo,
-      s.name,
-      s.className,
-      s.fatherName,
-      s.dateOfBirth || '',
-      s.contactNumber || '',
-    ]),
+    ['Class', 'RollNo', 'Name', 'FatherName', 'DateOfBirth', 'ContactNumber'],
+    ...sortedStudents.map((s) => {
+      let formattedDob = '';
+      if (s.dateOfBirth) {
+        const parts = s.dateOfBirth.split('-');
+        if (parts.length === 3) {
+          formattedDob = `${parts[2]}/${parts[1]}/${parts[0]}`;
+        } else {
+          formattedDob = s.dateOfBirth;
+        }
+      }
+      return [
+        s.className,
+        s.rollNo,
+        s.name,
+        s.fatherName,
+        formattedDob,
+        s.contactNumber || '',
+      ];
+    }),
   ];
 
   // 2. Exams Sheet

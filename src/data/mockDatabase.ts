@@ -11,8 +11,8 @@ export const SCHOOL_INFO = {
 
 // Official Classes per Google Sheets database
 export const ORDERED_CLASSES = [
-  '10A',
   '8A',
+  '10A',
   '12A',
   '12B',
   '12C',

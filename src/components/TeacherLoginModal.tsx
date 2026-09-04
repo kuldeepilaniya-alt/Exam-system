@@ -16,7 +16,6 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
   teachers,
   onLoginSuccess,
 }) => {
-  const [loginMethod, setLoginMethod] = useState<'mobile_or_pin' | 'quick_pin'>('mobile_or_pin');
   const [mobileInput, setMobileInput] = useState('');
   const [pinInput, setPinInput] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -31,44 +30,22 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
     const cleanMobile = mobileInput.trim().replace(/\D/g, '');
     const cleanPin = pinInput.trim();
 
-    if (!cleanMobile && !cleanPin) {
-      setErrorMessage('Please enter your registered mobile number or 4-digit PIN.');
+    if (!cleanMobile || !cleanPin) {
+      setErrorMessage('Please enter both your registered mobile number and 4-digit PIN.');
       return;
     }
 
-    let matchedTeacher: TeacherUser | undefined;
+    const matchedTeacher = teachers.find(
+      (t) => t.mobile.replace(/\D/g, '') === cleanMobile && t.pin === cleanPin
+    );
 
-    if (cleanMobile && cleanPin) {
-      // Both provided: verify both
-      matchedTeacher = teachers.find(
-        (t) => t.mobile.replace(/\D/g, '') === cleanMobile && t.pin === cleanPin
-      );
-      if (!matchedTeacher) {
-        setErrorMessage('Invalid mobile number or 4-digit PIN combination.');
-        return;
-      }
-    } else if (cleanMobile) {
-      // Mobile only
-      matchedTeacher = teachers.find(
-        (t) => t.mobile.replace(/\D/g, '') === cleanMobile
-      );
-      if (!matchedTeacher) {
-        setErrorMessage(`No teacher account found with mobile number "${cleanMobile}".`);
-        return;
-      }
-    } else if (cleanPin) {
-      // PIN only
-      matchedTeacher = teachers.find((t) => t.pin === cleanPin);
-      if (!matchedTeacher) {
-        setErrorMessage(`No teacher account found with 4-digit PIN "${cleanPin}".`);
-        return;
-      }
+    if (!matchedTeacher) {
+      setErrorMessage('Invalid mobile number or 4-digit PIN combination.');
+      return;
     }
 
-    if (matchedTeacher) {
-      onLoginSuccess(matchedTeacher);
-      onClose();
-    }
+    onLoginSuccess(matchedTeacher);
+    onClose();
   };
 
   const handleQuickSelect = (teacher: TeacherUser) => {
@@ -140,32 +117,6 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
           </button>
         </div>
 
-        {/* Tab Toggle */}
-        <div className="mt-4 flex rounded-xl bg-slate-100 p-1">
-          <button
-            type="button"
-            onClick={() => setLoginMethod('mobile_or_pin')}
-            className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-              loginMethod === 'mobile_or_pin'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            Mobile or 4-Digit PIN
-          </button>
-          <button
-            type="button"
-            onClick={() => setLoginMethod('quick_pin')}
-            className={`flex-1 rounded-lg py-2 text-xs font-bold transition ${
-              loginMethod === 'quick_pin'
-                ? 'bg-white text-slate-900 shadow-xs'
-                : 'text-slate-500 hover:text-slate-900'
-            }`}
-          >
-            Quick 4-Digit PIN
-          </button>
-        </div>
-
         {errorMessage && (
           <div className="mt-3.5 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800">
             {errorMessage}
@@ -173,72 +124,47 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
         )}
 
         <form onSubmit={handleCredentialLogin} className="mt-4 space-y-3.5">
-          {loginMethod === 'mobile_or_pin' ? (
-            <>
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                  Teacher Mobile Number
-                </label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                    <Phone className="h-4 w-4" />
-                  </div>
-                  <input
-                    type="tel"
-                    id="teacher-mobile-input"
-                    placeholder="e.g. 9876543210"
-                    value={mobileInput}
-                    onChange={(e) => setMobileInput(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-                  />
-                </div>
-                <p className="mt-1 text-[11px] text-slate-400">
-                  Enter 10-digit mobile number OR your 4-digit PIN below
-                </p>
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+              Teacher Mobile Number
+            </label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <Phone className="h-4 w-4" />
               </div>
-
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                  4-Digit Security PIN
-                </label>
-                <div className="relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                    <KeyRound className="h-4 w-4" />
-                  </div>
-                  <input
-                    type="password"
-                    maxLength={4}
-                    id="teacher-pin-input"
-                    placeholder="••••"
-                    value={pinInput}
-                    onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-xs font-mono font-bold tracking-widest text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-                  />
-                </div>
-              </div>
-            </>
-          ) : (
-            <div>
-              <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                Enter 4-Digit Teacher PIN
-              </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <KeyRound className="h-4 w-4" />
-                </div>
-                <input
-                  type="password"
-                  maxLength={4}
-                  id="quick-pin-direct-input"
-                  placeholder="e.g. 1234"
-                  value={pinInput}
-                  autoFocus
-                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-9 pr-3 text-center text-lg font-mono font-extrabold tracking-widest text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-                />
-              </div>
+              <input
+                type="tel"
+                id="teacher-mobile-input"
+                placeholder="e.g. 9876543210"
+                value={mobileInput}
+                onChange={(e) => setMobileInput(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              />
             </div>
-          )}
+            <p className="mt-1 text-[11px] text-slate-400">
+              Enter your 10-digit mobile number and 4-digit PIN below
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+              4-Digit Security PIN
+            </label>
+            <div className="relative">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <KeyRound className="h-4 w-4" />
+              </div>
+              <input
+                type="password"
+                maxLength={4}
+                id="teacher-pin-input"
+                placeholder="••••"
+                value={pinInput}
+                onChange={(e) => setPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-xs font-mono font-bold tracking-widest text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              />
+            </div>
+          </div>
 
           <button
             type="submit"
