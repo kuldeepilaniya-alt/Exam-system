@@ -208,6 +208,7 @@ const STORAGE_KEYS = {
   ACTIVE_TEACHER: 'marksdb_active_teacher',
   LINKED_SHEET: 'marksdb_linked_sheet_id',
   LINKED_SHEET_URL: 'marksdb_linked_sheet_url',
+  WEB_APP_URL: 'marksdb_web_app_url',
 };
 
 export function getStoredStudents(): Student[] {
@@ -328,6 +329,38 @@ export function getStoredLinkedSheetId(): string | null {
     return localStorage.getItem(STORAGE_KEYS.LINKED_SHEET);
   } catch {
     return null;
+  }
+}
+
+export function getStoredLinkedSheetUrl(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.LINKED_SHEET_URL);
+  } catch {
+    return null;
+  }
+}
+
+export function saveLinkedSheetUrl(url: string | null): void {
+  if (url) {
+    localStorage.setItem(STORAGE_KEYS.LINKED_SHEET_URL, url);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.LINKED_SHEET_URL);
+  }
+}
+
+export function getStoredWebAppUrl(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.WEB_APP_URL);
+  } catch {
+    return null;
+  }
+}
+
+export function saveStoredWebAppUrl(url: string | null): void {
+  if (url) {
+    localStorage.setItem(STORAGE_KEYS.WEB_APP_URL, url);
+  } else {
+    localStorage.removeItem(STORAGE_KEYS.WEB_APP_URL);
   }
 }
 

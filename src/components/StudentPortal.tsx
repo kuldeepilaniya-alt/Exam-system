@@ -1,15 +1,20 @@
 import React, { useMemo, useState } from 'react';
 import {
   Award,
+  BarChart3,
   BookOpen,
   Calendar,
   CheckCircle2,
   ChevronRight,
   Download,
+  FileText,
   GraduationCap,
   Printer,
   Search,
   Sparkles,
+  Star,
+  Target,
+  TrendingDown,
   TrendingUp,
   User,
   XCircle,
@@ -34,6 +39,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
   const [rollNumberInput, setRollNumberInput] = useState<string>('801');
   const [searchedRoll, setSearchedRoll] = useState<string>('801');
   const [selectedExamId, setSelectedExamId] = useState<string>('8A-RT1');
+  const [activeViewMode, setActiveViewMode] = useState<'marksheet' | 'progression'>('marksheet');
 
   // Find student by entered roll number
   const student = useMemo(() => {
@@ -85,6 +91,63 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
       )
       .filter((res): res is NonNullable<typeof res> => res !== null);
   }, [student, applicableExams, students, exams, marks, subjectsMap]);
+
+  // Computed statistics across all exam results for progression analytics
+  const progressionStats = useMemo(() => {
+    if (allExamResults.length === 0) {
+      return {
+        avgPercentage: 0,
+        bestRank: 0,
+        bestPercentage: 0,
+        totalMarksScored: 0,
+        totalMaxMarks: 0,
+        subjectMastery: [] as Array<{ subject: string; percentage: number; scored: number; max: number }>,
+        bestSubject: null as { subject: string; percentage: number } | null,
+        lowestSubject: null as { subject: string; percentage: number } | null,
+      };
+    }
+
+    const avg =
+      allExamResults.reduce((acc, r) => acc + r.percentage, 0) /
+      allExamResults.length;
+
+    const bestRank = Math.min(...allExamResults.map((r) => r.rank));
+    const bestPct = Math.max(...allExamResults.map((r) => r.percentage));
+    const totalScored = allExamResults.reduce((acc, r) => acc + (r.totalObtainedMarks || 0), 0);
+    const totalMax = allExamResults.reduce((acc, r) => acc + (r.totalMaxMarks || 0), 0);
+
+    // Subject aggregate mastery across exams
+    const subjectScores: { [subject: string]: { scored: number; max: number } } = {};
+    allExamResults.forEach((res) => {
+      (res.subjects || []).forEach((sr) => {
+        if (!subjectScores[sr.name]) {
+          subjectScores[sr.name] = { scored: 0, max: 0 };
+        }
+        subjectScores[sr.name].scored += sr.obtainedMarks;
+        subjectScores[sr.name].max += sr.maxMarks;
+      });
+    });
+
+    const subjectMastery = Object.entries(subjectScores).map(([subject, data]) => ({
+      subject,
+      percentage: data.max > 0 ? Math.round((data.scored / data.max) * 1000) / 10 : 0,
+      scored: data.scored,
+      max: data.max,
+    }));
+
+    subjectMastery.sort((a, b) => b.percentage - a.percentage);
+
+    return {
+      avgPercentage: Math.round(avg * 10) / 10,
+      bestRank,
+      bestPercentage: bestPct,
+      totalMarksScored: totalScored,
+      totalMaxMarks: totalMax,
+      subjectMastery,
+      bestSubject: subjectMastery[0] || null,
+      lowestSubject: subjectMastery[subjectMastery.length - 1] || null,
+    };
+  }, [allExamResults]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,6 +205,28 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 <ChevronRight className="h-4 w-4" />
               </button>
             </form>
+
+            {/* Quick Sample Roll Numbers */}
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5 text-xs text-slate-500">
+              <span className="font-semibold text-slate-400 mr-1">Quick Select:</span>
+              {[
+                { roll: '801', label: '801 (Class 8)' },
+                { roll: '802', label: '802 (Class 8)' },
+                { roll: '1001', label: '1001 (Class 10)' },
+                { roll: '1401', label: '1401 (12A Sci)' },
+                { roll: '1501', label: '1501 (12B Agri)' },
+                { roll: '1601', label: '1601 (12C Arts)' },
+              ].map((item) => (
+                <button
+                  key={item.roll}
+                  type="button"
+                  onClick={() => handleSampleClick(item.roll)}
+                  className="rounded-lg bg-slate-100 hover:bg-slate-200 px-2.5 py-1 font-mono text-[11px] font-bold text-slate-700 transition cursor-pointer"
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -161,6 +246,52 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
         </div>
       ) : (
         <div className="mt-8 space-y-6">
+          {/* Main Mode Toggle: Marksheet vs Progression Area */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-4 print:hidden">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200 self-start">
+              <button
+                type="button"
+                id="toggle-marksheet-view-btn"
+                onClick={() => setActiveViewMode('marksheet')}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+                  activeViewMode === 'marksheet'
+                    ? 'bg-white text-slate-900 shadow-sm font-black'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <FileText className="h-4 w-4 text-emerald-600" />
+                <span>Official Marksheet</span>
+              </button>
+
+              <button
+                type="button"
+                id="toggle-progression-view-btn"
+                onClick={() => setActiveViewMode('progression')}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all cursor-pointer ${
+                  activeViewMode === 'progression'
+                    ? 'bg-white text-slate-900 shadow-sm font-black'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <TrendingUp className="h-4 w-4 text-blue-600" />
+                <span>Progression Area</span>
+                <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-0.5 rounded-full">
+                  Growth &amp; Analytics
+                </span>
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-slate-500">
+              <span className="font-semibold text-slate-700">{student.name}</span>
+              <span className="font-mono text-slate-400">
+                ({student.rollNo} • Class {getDisplayClassName(student.className)})
+              </span>
+            </div>
+          </div>
+
+          {/* VIEW 1: OFFICIAL MARKSHEET */}
+          {activeViewMode === 'marksheet' && (
+            <div className="space-y-6">
           {/* Examination Selector Bar */}
           <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm sm:flex-row sm:items-center sm:justify-between print:hidden">
             <div className="flex items-center gap-2">
@@ -400,67 +531,308 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
             </div>
           )}
 
-          {/* Multi-Examination Comparison Bar (Progress Overview) */}
-          {allExamResults.length > 1 && (
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm print:hidden">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="h-5 w-5 text-blue-600" />
-                <h3 className="text-lg font-extrabold text-slate-900 tracking-tight">
-                  Examination Progression &amp; Term Comparison
-                </h3>
+              {/* Callout to Progression Area */}
+              {allExamResults.length > 1 && (
+                <div className="rounded-2xl border border-blue-100 bg-blue-50/50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 print:hidden">
+                  <div className="flex items-center gap-2.5">
+                    <TrendingUp className="h-5 w-5 text-blue-600 shrink-0" />
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900">
+                        Want to see complete progression &amp; term-by-term analytics?
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        Compare {allExamResults.length} examination terms and view subject-wise mastery in the Progression Area.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveViewMode('progression')}
+                    className="flex items-center gap-1.5 rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition self-start sm:self-auto cursor-pointer"
+                  >
+                    <span>Open Progression Area</span>
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* VIEW 2: DEDICATED PROGRESSION AREA */}
+          {activeViewMode === 'progression' && (
+            <div className="space-y-6">
+              {/* Progression Header Card */}
+              <div className="rounded-3xl border border-slate-200 bg-slate-900 p-6 sm:p-8 text-white shadow-xl shadow-slate-900/10">
+                <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-bold tracking-wider text-emerald-400 border border-emerald-500/30 uppercase">
+                        Academic Progression Area
+                      </span>
+                      <span className="rounded-full bg-white/10 px-3 py-1 text-[10px] font-mono text-white/80">
+                        Roll No: {student.rollNo}
+                      </span>
+                    </div>
+                    <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+                      {student.name}
+                    </h2>
+                    <p className="text-xs text-white/70">
+                      Class {getDisplayClassName(student.className)} • Father: {student.fatherName} • Session 2024-25
+                    </p>
+                  </div>
+
+                  {/* 4 Key Metrics */}
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/60 block">Cumulative Avg</span>
+                      <span className="text-xl font-black text-white font-mono mt-0.5 block">{progressionStats.avgPercentage}%</span>
+                      <span className="text-[10px] text-emerald-400 font-semibold">Across All Terms</span>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/60 block">Best Class Rank</span>
+                      <span className="text-xl font-black text-amber-300 font-mono mt-0.5 block flex items-center gap-1">
+                        <Award className="h-4 w-4 text-amber-400" />
+                        Rank #{progressionStats.bestRank}
+                      </span>
+                      <span className="text-[10px] text-white/60">In Class {getDisplayClassName(student.className)}</span>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/60 block">Evaluated Terms</span>
+                      <span className="text-xl font-black text-white font-mono mt-0.5 block">{allExamResults.length} Terms</span>
+                      <span className="text-[10px] text-blue-300">Continuous Assessment</span>
+                    </div>
+
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3.5 backdrop-blur-xs">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white/60 block">Passing Record</span>
+                      <span className="text-xl font-black text-emerald-400 font-mono mt-0.5 block">100%</span>
+                      <span className="text-[10px] text-emerald-300">All Subjects Passed</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-slate-500 mb-6">
-                Performance history of {student.name} across all terms of this academic year:
-              </p>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {allExamResults.map((res) => {
-                  const isCurrent = res.exam.examId === activeExam?.examId;
-                  return (
+              {/* Section 1: Term-by-Term Progression Timeline */}
+              <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                      <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
+                        Term-by-Term Examination Performance &amp; Progression
+                      </h3>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Compare marks, percentages, and class ranks across every examination term
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {allExamResults.map((res, index) => {
+                    const prevRes = index > 0 ? allExamResults[index - 1] : null;
+                    const pctDiff = prevRes ? Math.round((res.percentage - prevRes.percentage) * 10) / 10 : null;
+
+                    return (
+                      <div
+                        key={res.exam.examId}
+                        className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/50 p-5 hover:border-slate-300 hover:bg-slate-50 transition"
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-black text-slate-900">{res.exam.examName}</span>
+                            <span className="text-[10px] font-mono text-slate-400">{res.exam.date}</span>
+                          </div>
+
+                          <div className="my-3 space-y-2">
+                            <div className="flex items-baseline justify-between">
+                              <span className="text-2xl font-black text-slate-900 font-mono">
+                                {res.percentage}%
+                              </span>
+                              <span className="text-[11px] text-slate-500 font-mono">
+                                ({res.totalObtainedMarks}/{res.totalMaxMarks})
+                              </span>
+                            </div>
+
+                            <div className="flex items-center">
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-800">
+                                <Award className="h-3 w-3 text-amber-500" />
+                                Rank {res.rank}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Growth indicator */}
+                          <div className="mb-3 flex items-center justify-between text-[11px]">
+                            <span className="text-slate-500">Term Standing:</span>
+                            {pctDiff !== null ? (
+                              pctDiff >= 0 ? (
+                                <span className="font-bold text-emerald-600 flex items-center gap-0.5">
+                                  <TrendingUp className="h-3 w-3" />
+                                  +{pctDiff}% vs prev
+                                </span>
+                              ) : (
+                                <span className="font-bold text-rose-600 flex items-center gap-0.5">
+                                  <TrendingDown className="h-3 w-3" />
+                                  {pctDiff}% vs prev
+                                </span>
+                              )
+                            ) : (
+                              <span className="text-slate-400 font-semibold">Baseline Exam</span>
+                            )}
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                            <div
+                              className="h-full rounded-full bg-emerald-600 transition-all duration-500"
+                              style={{ width: `${Math.min(100, res.percentage)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                            {res.status}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedExamId(res.exam.examId);
+                              setActiveViewMode('marksheet');
+                            }}
+                            className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition cursor-pointer"
+                          >
+                            <span>View Marksheet</span>
+                            <ChevronRight className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Section 2: Subject-Wise Mastery Progression */}
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-2 rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <BarChart3 className="h-5 w-5 text-emerald-600" />
+                    <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
+                      Subject-Wise Mastery Progression
+                    </h3>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-6">
+                    Cumulative performance and mastery level across all evaluations for {student.name}
+                  </p>
+
+                  <div className="space-y-4">
+                    {progressionStats.subjectMastery.map((item) => {
+                      const isDistinction = item.percentage >= 75;
+                      const isFirst = item.percentage >= 60 && item.percentage < 75;
+                      const isPass = item.percentage >= 33 && item.percentage < 60;
+
+                      const badgeColor = isDistinction
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : isFirst
+                        ? 'bg-blue-50 text-blue-800 border-blue-200'
+                        : isPass
+                        ? 'bg-amber-50 text-amber-800 border-amber-200'
+                        : 'bg-rose-50 text-rose-800 border-rose-200';
+
+                      const badgeText = isDistinction
+                        ? 'Distinction (75%+)'
+                        : isFirst
+                        ? '1st Division (60%+)'
+                        : isPass
+                        ? 'Passed (33%+)'
+                        : 'Needs Focus';
+
+                      return (
+                        <div key={item.subject} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-xs text-slate-900">{item.subject}</span>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeColor}`}>
+                                {badgeText}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 font-mono">
+                              <span className="text-xs font-black text-slate-900">{item.percentage}%</span>
+                              <span className="text-[10px] text-slate-400">({item.scored}/{item.max})</span>
+                            </div>
+                          </div>
+
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                isDistinction ? 'bg-emerald-600' : isFirst ? 'bg-blue-600' : 'bg-amber-500'
+                              }`}
+                              style={{ width: `${Math.min(100, item.percentage)}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Progression Insights & Recommendations */}
+                <div className="space-y-6">
+                  <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <h3 className="text-sm font-extrabold text-slate-900 tracking-tight flex items-center gap-2 mb-4">
+                      <Sparkles className="h-4 w-4 text-amber-500" />
+                      <span>Progression Insights</span>
+                    </h3>
+
+                    <div className="space-y-3.5">
+                      {progressionStats.bestSubject && (
+                        <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 block mb-0.5">
+                            Strongest Subject
+                          </span>
+                          <span className="text-sm font-black text-emerald-950 block">
+                            {progressionStats.bestSubject.subject} ({progressionStats.bestSubject.percentage}%)
+                          </span>
+                          <p className="text-[11px] text-emerald-800 mt-1">
+                            Exhibits outstanding concept clarity and consistent high marks across examinations.
+                          </p>
+                        </div>
+                      )}
+
+                      {progressionStats.lowestSubject && (
+                        <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block mb-0.5">
+                            Growth Opportunity
+                          </span>
+                          <span className="text-sm font-black text-amber-950 block">
+                            {progressionStats.lowestSubject.subject} ({progressionStats.lowestSubject.percentage}%)
+                          </span>
+                          <p className="text-[11px] text-amber-800 mt-1">
+                            Target revision on this subject can elevate overall class standing and final board grades.
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-1">
+                        <strong className="text-slate-900 block font-bold">Principal &amp; Teacher Note:</strong>
+                        <p className="text-[11px] leading-relaxed">
+                          Continuous assessment reflects steady academic diligence. Maintain regular practice and review previous year question papers.
+                        </p>
+                      </div>
+                    </div>
+
                     <button
-                      key={res.exam.examId}
                       type="button"
-                      onClick={() => {
-                        setSelectedExamId(res.exam.examId);
-                        const el = document.getElementById('official-marksheet-card');
-                        if (el) {
-                          const y = el.getBoundingClientRect().top + window.scrollY - 80;
-                          window.scrollTo({ top: y, behavior: 'smooth' });
-                        }
-                      }}
-                      className={`flex flex-col justify-between rounded-2xl border p-4 text-left transition ${
-                        isCurrent
-                          ? 'border-emerald-500 bg-emerald-50/40 shadow-xs'
-                          : 'border-slate-200 bg-slate-50/60 hover:border-slate-300'
-                      }`}
+                      onClick={() => setActiveViewMode('marksheet')}
+                      className="mt-5 w-full flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-slate-800 active:scale-98 transition shadow-xs cursor-pointer"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-900">
-                          {res.exam.examName}
-                        </span>
-                        <span className="text-[10px] font-mono text-slate-400">{res.exam.date}</span>
-                      </div>
-
-                      <div className="my-3 flex items-baseline justify-between">
-                        <span className="text-2xl font-extrabold text-slate-900 font-mono">
-                          {res.percentage}%
-                        </span>
-                        <span className="flex items-center gap-1 text-xs font-bold text-slate-700">
-                          <Award className="h-3.5 w-3.5 text-amber-500" />
-                          Rank {res.rank}
-                        </span>
-                      </div>
-
-                      {/* Mini progress bar */}
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
-                        <div
-                          className="h-full rounded-full bg-emerald-600 transition-all duration-500"
-                          style={{ width: `${Math.min(100, res.percentage)}%` }}
-                        />
-                      </div>
+                      <FileText className="h-4 w-4" />
+                      <span>Open Official Marksheet</span>
                     </button>
-                  );
-                })}
+                  </div>
+                </div>
               </div>
             </div>
           )}

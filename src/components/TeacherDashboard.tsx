@@ -4,7 +4,10 @@ import {
   Award,
   BookOpen,
   Calendar,
+  Check,
   CheckCircle2,
+  Code,
+  Copy,
   Download,
   Edit3,
   ExternalLink,
@@ -15,6 +18,7 @@ import {
   Printer,
   RefreshCw,
   Search,
+  Settings,
   Sheet,
   Sparkles,
   Trophy,
@@ -46,8 +50,14 @@ import {
   generateAllSampleMarks,
   ORDERED_CLASSES,
   saveLinkedSheetId,
+  saveLinkedSheetUrl,
+  getStoredLinkedSheetUrl,
+  getStoredWebAppUrl,
+  saveStoredWebAppUrl,
   SCHOOL_INFO,
 } from '../data/mockDatabase';
+import { GOOGLE_APPS_SCRIPT_CODE } from '../data/googleAppsScriptCode';
+import { GoogleSettingsModal } from './GoogleSettingsModal';
 
 interface TeacherDashboardProps {
   activeTeacher: TeacherUser;
@@ -163,42 +173,42 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [newExamMaxMarks, setNewExamMaxMarks] = useState(100);
   const [newExamDate, setNewExamDate] = useState(new Date().toISOString().split('T')[0]);
 
-  // Google Sheets confirmation dialog state
+  // Google Sheets confirmation & settings modal state
   const [isConfirmSyncOpen, setIsConfirmSyncOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatusMessage, setSyncStatusMessage] = useState<string | null>(null);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
-  // Google Sheets URL state and direct update handler
-  const [sheetUrlInput, setSheetUrlInput] = useState<string>(
-    googleSheetsState.spreadsheetUrl || googleSheetsState.spreadsheetId || ''
+  // Stored URLs for Apps Script Web App and Google Sheet
+  const [webAppUrl, setWebAppUrl] = useState<string>(
+    () => getStoredWebAppUrl() || googleSheetsState.spreadsheetUrl || ''
   );
-  const [urlUpdateMessage, setUrlUpdateMessage] = useState<string | null>(null);
+  const [linkedSheetUrl, setLinkedSheetUrl] = useState<string>(
+    () => getStoredLinkedSheetUrl() || (googleSheetsState.spreadsheetId ? buildSpreadsheetUrl(googleSheetsState.spreadsheetId) : '')
+  );
 
-  useEffect(() => {
-    if (googleSheetsState.spreadsheetUrl) {
-      setSheetUrlInput(googleSheetsState.spreadsheetUrl);
-    } else if (googleSheetsState.spreadsheetId) {
-      setSheetUrlInput(buildSpreadsheetUrl(googleSheetsState.spreadsheetId));
-    }
-  }, [googleSheetsState.spreadsheetUrl, googleSheetsState.spreadsheetId]);
+  const handleSaveGoogleSettings = (newSettings: { webAppUrl: string; sheetUrlOrId: string }) => {
+    const cleanWeb = newSettings.webAppUrl.trim();
+    const cleanSheet = newSettings.sheetUrlOrId.trim();
 
-  
-  const handleSaveSheetUrl = () => {
-    if (!sheetUrlInput.trim()) {
-      setUrlUpdateMessage('Please enter a Web App URL.');
-      return;
-    }
-    const cleanUrl = sheetUrlInput.trim();
-    saveLinkedSheetId(cleanUrl); // we just overload this helper to save the URL
+    setWebAppUrl(cleanWeb);
+    saveStoredWebAppUrl(cleanWeb);
+
+    setLinkedSheetUrl(cleanSheet);
+    saveLinkedSheetUrl(cleanSheet);
+
+    const sheetId = extractSpreadsheetId(cleanSheet);
+    saveLinkedSheetId(sheetId);
+
     onUpdateGoogleSheetsState({
-      spreadsheetUrl: cleanUrl,
-      spreadsheetId: cleanUrl, // overload
-      isConnected: true,
+      spreadsheetUrl: cleanWeb || (sheetId ? buildSpreadsheetUrl(sheetId) : null),
+      spreadsheetId: sheetId || cleanWeb,
+      isConnected: Boolean(cleanWeb || sheetId),
       error: null,
     });
-    setSheetUrlInput(cleanUrl);
-    setUrlUpdateMessage(`✓ Web App URL updated & saved!`);
-    setTimeout(() => setUrlUpdateMessage(null), 4500);
+
+    setSyncStatusMessage('✓ Google Sheet & Webhook settings updated successfully.');
+    setTimeout(() => setSyncStatusMessage(null), 4500);
   };
 
 
@@ -620,8 +630,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   // Sync to Google Sheets
   
   const handleInitiateGoogleSync = () => {
-    if (!googleSheetsState.spreadsheetUrl || !googleSheetsState.spreadsheetUrl.startsWith('https://script.google.com/')) {
-      setUrlUpdateMessage('⚠️ Please enter a valid Google Apps Script Web App URL below first.');
+    const activeUrl = webAppUrl || googleSheetsState.spreadsheetUrl || getStoredWebAppUrl();
+    if (!activeUrl || !activeUrl.startsWith('https://script.google.com/')) {
+      setIsSettingsModalOpen(true);
       return;
     }
     setIsConfirmSyncOpen(true);
@@ -631,8 +642,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     setIsSyncing(true);
     setSyncStatusMessage(null);
     try {
-      const webAppUrl = googleSheetsState.spreadsheetUrl;
-      if (!webAppUrl) throw new Error("No Web App URL configured");
+      const activeUrl = webAppUrl || googleSheetsState.spreadsheetUrl || getStoredWebAppUrl();
+      if (!activeUrl) throw new Error('No Google Apps Script Web App URL configured. Please click Settings to configure it.');
       
       const payload = {
         students,
@@ -641,7 +652,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         subjectsMap,
       };
 
-      await fetch(webAppUrl, {
+      await fetch(activeUrl, {
         method: 'POST',
         mode: 'no-cors',
         headers: {
@@ -650,15 +661,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         body: JSON.stringify(payload)
       });
       
+      const timestamp = new Date().toLocaleTimeString();
       onUpdateGoogleSheetsState({
         isConnected: true,
-        spreadsheetUrl: webAppUrl,
-        lastSyncedAt: new Date().toLocaleTimeString(),
+        spreadsheetUrl: activeUrl,
+        lastSyncedAt: timestamp,
         syncInProgress: false,
         error: null,
       });
 
-      setSyncStatusMessage('✓ Successfully pushed all local database records to Google Sheets via Webhook!');
+      setSyncStatusMessage('✓ Successfully saved all database records to Google Sheets via Webhook!');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Webhook synchronization failed.';
       setSyncStatusMessage(`Sync error: ${msg}`);
@@ -728,6 +740,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             >
               <Plus className="h-4 w-4 text-white" />
               <span>New Exam</span>
+            </button>
+
+            <button
+              type="button"
+              id="google-settings-top-btn"
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-white/20 transition"
+              title="Google Apps Script & Sheet Settings"
+            >
+              <Settings className="h-4 w-4 text-emerald-400" />
+              <span>Settings</span>
             </button>
 
             <button
@@ -1392,19 +1415,41 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               <Sheet className="h-5 w-5 text-emerald-400" />
             </div>
             <div>
-              <h3 className="font-extrabold text-slate-900 tracking-tight">
-                Google Sheets Database Synchronization
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-slate-900 tracking-tight">
+                  Google Sheets Database Synchronization
+                </h3>
+                {webAppUrl ? (
+                  <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">
+                    Connected
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold">
+                    Setup Required
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-slate-500 max-w-xl mt-0.5">
-                Maintains 5 connected sheets (<b>Students</b>, <b>Exams</b>, <b>Marks</b>, <b>Subjects</b>, <b>Teachers</b>) directly inside your Google Drive. Allows seamless examination &amp; marks persistence without a private backend server.
+                Maintains 5 connected sheets (<b>Students</b>, <b>Exams</b>, <b>Marks</b>, <b>Subjects</b>, <b>Teachers</b>) directly inside your Google Drive. Allows seamless examination &amp; marks persistence.
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {googleSheetsState.spreadsheetUrl && (
+            <button
+              type="button"
+              id="google-settings-card-btn"
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 hover:border-slate-300 transition"
+              title="Configure Google Apps Script & Sheet Settings"
+            >
+              <Settings className="h-4 w-4 text-slate-600" />
+              <span>Settings</span>
+            </button>
+
+            {linkedSheetUrl && (
               <a
-                href={googleSheetsState.spreadsheetUrl}
+                href={linkedSheetUrl.startsWith('http') ? linkedSheetUrl : buildSpreadsheetUrl(linkedSheetUrl)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition"
@@ -1421,82 +1466,30 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition"
             >
               <RefreshCw className="h-4 w-4" />
-              <span>{googleSheetsState.spreadsheetUrl ? 'Sync Updates to Sheets' : 'Setup Webhook'}</span>
+              <span>Save Data to Database</span>
             </button>
           </div>
         </div>
 
-        {/* Update Google Sheet URL Field */}
-        <div className="mt-5 pt-5 border-t border-slate-100">
-          
-          <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-xl">
-            <h4 className="text-xs font-bold text-slate-900 mb-2">Google Apps Script Web App Code (doPost)</h4>
-            <p className="text-[10px] text-slate-500 mb-2">Copy this into your Google Sheet's Apps Script editor (Extensions &gt; Apps Script), deploy as a Web App (Access: Anyone), and paste the URL above.</p>
-            <textarea readOnly className="w-full h-32 p-2 text-[10px] font-mono text-slate-700 bg-white border border-slate-200 rounded-lg outline-none" defaultValue={`function doPost(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var data = JSON.parse(e.postData.contents);
-  
-  // Example: just write raw JSON or process it
-  // You can expand this to write to multiple tabs
-  sheet.getRange(1, 1).setValue("Last Synced: " + new Date());
-  sheet.getRange(2, 1).setValue(JSON.stringify(data));
-  
-  return ContentService.createTextOutput(JSON.stringify({"status":"success"}))
-    .setMimeType(ContentService.MimeType.JSON);
-}`} />
-          </div>
-
-<label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1.5">
-            Update Connected Google Apps Script Web App URL:
-          </label>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                id="teacher-sheet-url-input"
-                value={sheetUrlInput}
-                onChange={(e) => setSheetUrlInput(e.target.value)}
-                placeholder="Paste full Google Apps Script Web App URL (https://script.google.com/macros/s/.../exec)"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-3 text-xs font-mono text-slate-800 placeholder:text-slate-400 focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-              />
-            </div>
-            <button
-              type="button"
-              id="teacher-update-sheet-url-btn"
-              onClick={handleSaveSheetUrl}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-slate-800 active:scale-98 transition"
-            >
-              <Link className="h-3.5 w-3.5" />
-              <span>Update URL</span>
-            </button>
-            
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-            <span>
-              Tip: Deploy an Apps Script that handles POST requests to write to your Sheet, and paste the Web App URL here.
+        <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1 text-[11px] font-mono text-slate-600">
+              <span className={`inline-block h-2 w-2 rounded-full ${webAppUrl ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+              Webhook: {webAppUrl ? 'Configured' : 'Not set (Click Settings)'}
             </span>
-            {googleSheetsState.spreadsheetId && (
-              <span className="font-mono text-slate-400">
-                Active Webhook: {googleSheetsState.spreadsheetId}
+            {linkedSheetUrl && (
+              <span className="text-[11px] font-mono text-slate-400">
+                Sheet: {extractSpreadsheetId(linkedSheetUrl).substring(0, 16)}...
               </span>
             )}
           </div>
 
-          {urlUpdateMessage && (
-            <div className="mt-3 rounded-xl bg-emerald-50 border border-emerald-200 px-3.5 py-2 text-xs font-semibold text-emerald-800 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span>{urlUpdateMessage}</span>
-            </div>
+          {googleSheetsState.lastSyncedAt && (
+            <span className="text-[11px] text-slate-400">
+              Last synced at {googleSheetsState.lastSyncedAt}
+            </span>
           )}
         </div>
-
-        {googleSheetsState.lastSyncedAt && (
-          <div className="mt-3 flex items-center gap-2 text-xs font-medium text-slate-500">
-            <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-            <span>Last synced with Google Sheets at {googleSheetsState.lastSyncedAt}</span>
-          </div>
-        )}
       </div>
 
       {/* Edit Marks Modal */}
@@ -1753,6 +1746,18 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
       )}
+
+      {/* Google Apps Script & Sheet Settings Modal */}
+      <GoogleSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        webAppUrl={webAppUrl}
+        sheetUrlOrId={linkedSheetUrl}
+        onSaveSettings={handleSaveGoogleSettings}
+        onTriggerSync={handleInitiateGoogleSync}
+        isSyncing={isSyncing}
+        lastSyncedAt={googleSheetsState.lastSyncedAt}
+      />
 
       {/* Confirmation Modal for Google Sheets Sync (Workspace skill requirement) */}
       <ConfirmationModal
