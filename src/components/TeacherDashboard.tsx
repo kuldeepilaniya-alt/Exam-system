@@ -1813,7 +1813,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                             <Edit3 className="h-3 w-3 text-slate-500" />
                             <span>Edit</span>
                           </button>
-                          
+
                           <button
                             type="button"
                             id={`download-student-marksheet-${row.rollNo}`}
@@ -1859,7 +1859,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="font-extrabold text-slate-900 tracking-tight">
-                  Google Sheets Database Synchronization
+                  Google Sheets Database
                 </h3>
                 {webAppUrl ? (
                   <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">
@@ -2206,7 +2206,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       <ConfirmationModal
         isOpen={isConfirmSyncOpen}
         title="Save Data on Google Sheets?"
-        message={`This will update the 5 database sheets (Students: ${students.length} records, Exams: ${exams.length} exams, Marks: ${marks.length} entries, Subjects, and Teachers) in your Google Drive. Existing sheet contents will be refreshed with current data.`}
+        message={`This will update the 5 database sheets (Students: ${students.length} records, Exams: ${exams.length} exams, Marks: ${marks.length} entries, Subjects, and Teachers).`}
         confirmLabel="Update Data"
         cancelLabel="Cancel"
         isLoading={isSyncing}

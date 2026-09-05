@@ -262,7 +262,7 @@ export async function generateStudentMarksheetPDF(
       </div>
 
       <!-- Student Summary Pill Bar -->
-      <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1;  background-color: #f8fafc; padding: 10px 14px; margin-bottom: 10px; font-size: 10px;">
+      <div style="display: grid; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1;  background-color: #f8fafc; padding: 10px 14px; margin-bottom: 10px; font-size: 10px;">
         <div>
           <span style="font-weight: 700; color: #64748b;">Student:</span>
           <strong style="color: #0f172a; margin-left: 4px;">${student.name.toUpperCase()}</strong>
@@ -272,9 +272,6 @@ export async function generateStudentMarksheetPDF(
           <span style="color: #cbd5e1; margin: 0 8px;">|</span>
           <span style="font-weight: 700; color: #64748b;">Class:</span>
           <strong style="color: #0f172a; margin-left: 4px;">${studentClass}</strong>
-        </div>
-        <div style="font-weight: 800; color: #1e40af; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 8px;  font-size: 9px;">
-          ${evaluatedCount} Evaluated Terms
         </div>
       </div>
       <!-- 1. Complete Examination History & Trajectory Table -->

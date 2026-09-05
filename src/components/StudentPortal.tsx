@@ -625,9 +625,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                       Term-by-Term Examination Performance Report
                     </h3>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Comprehensive multi-term performance tracking, rank trajectories, and subject growth analysis
-                  </p>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl self-start sm:self-auto">
                   <span>Student: <strong>{student.name}</strong></span>
