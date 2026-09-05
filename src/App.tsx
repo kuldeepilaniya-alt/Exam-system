@@ -526,7 +526,7 @@ export default function App() {
             <span className="font-semibold text-slate-800 dark:text-slate-200">
               Govt. Sr. Sec. School, Sanwaloda Purohitan, Sikar
             </span>{' '}
-            • Principal: Narendra Singh Chauhan • Examination Cell
+            • Principal: Narendra Singh Chauhan
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -539,7 +539,7 @@ export default function App() {
               <span>Reset Sample Data</span>
             </button>
             <span className="text-slate-300 dark:text-slate-700">|</span>
-            <span>Google Sheets &amp; Drive Integrated</span>
+            <span>Developed by Kuldeep Sir</span>
           </div>
         </div>
       </footer>
