@@ -276,7 +276,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 onClick={handleDownloadPDF}
                 disabled={isGeneratingPdf || !currentResult}
                 className="flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 text-xs font-bold shadow-xs active:scale-95 transition disabled:opacity-60 cursor-pointer"
-                title="Download 2-Page A4 Marksheet PDF"
+                title="Download 1-Page A4 Marksheet PDF"
               >
                 <Download className={`h-3.5 w-3.5 ${isGeneratingPdf ? 'animate-bounce' : ''}`} />
                 <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download PDF'}</span>
@@ -299,7 +299,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 id="print-marksheet-btn"
                 onClick={handlePrint}
                 className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
-                title="Print 2-Page Marksheet"
+                title="Print 1-Page Marksheet"
               >
                 <Printer className="h-3.5 w-3.5" />
                 <span>Print</span>
@@ -531,11 +531,11 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
             </div>
           )}
 
-          {/* Term-by-Term Examination Performance & Progression (Page 2 in Print) */}
+          {/* Term-by-Term Examination Performance & Progression */}
           {allExamResults.length > 0 && (
             <div
               id="term-by-term-progression"
-              className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm print:border-slate-300 print:shadow-none print:break-before-page print:p-6 print:mt-0 print:block"
+              className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm print:border-slate-300 print:shadow-none print:p-4 print:mt-4 print:block"
             >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
                 <div>
