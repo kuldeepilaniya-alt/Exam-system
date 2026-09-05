@@ -286,9 +286,33 @@ export const GoogleSettingsModal: React.FC<GoogleSettingsModalProps> = ({
                   Receives student records, exams, and marks, and formats 5 sheets automatically.
                 </p>
               </div>
+            </div>
 
-              <div className="flex items-center gap-2">
-                <button
+            {/* Quick 4-Step Instructions */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-[10px] text-slate-600 mb-3">
+              <div className="bg-white p-2 rounded-lg border border-slate-200">
+                <strong className="text-slate-900 block font-bold mb-0.5">1. Open Sheet</strong>
+                <span>Extensions &gt; Apps Script</span>
+              </div>
+              <div className="bg-white p-2 rounded-lg border border-slate-200">
+                <strong className="text-slate-900 block font-bold mb-0.5">2. Paste Code</strong>
+                <span>Paste the entire script</span>
+              </div>
+              <div className="bg-white p-2 rounded-lg border border-slate-200">
+                <strong className="text-slate-900 block font-bold mb-0.5">3. Deploy Web App</strong>
+                <span>Deploy &gt; Access: <strong>Anyone</strong></span>
+              </div>
+              <div className="bg-white p-2 rounded-lg border border-slate-200">
+                <strong className="text-slate-900 block font-bold mb-0.5">4. Copy Web App URL</strong>
+                <span>Paste into the URL box above</span>
+              </div>
+            </div>
+
+          
+
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-[10px] text-slate-600 mb-3">
+            <button
                   type="button"
                   onClick={handleCopyScript}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs ${
@@ -327,27 +351,6 @@ export const GoogleSettingsModal: React.FC<GoogleSettingsModalProps> = ({
                   {showCodePreview ? 'Hide Code' : 'View Code'}
                 </button>
               </div>
-            </div>
-
-            {/* Quick 4-Step Instructions */}
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-[10px] text-slate-600 mb-3">
-              <div className="bg-white p-2 rounded-lg border border-slate-200">
-                <strong className="text-slate-900 block font-bold mb-0.5">1. Open Sheet</strong>
-                <span>Extensions &gt; Apps Script</span>
-              </div>
-              <div className="bg-white p-2 rounded-lg border border-slate-200">
-                <strong className="text-slate-900 block font-bold mb-0.5">2. Paste Code</strong>
-                <span>Paste the entire script</span>
-              </div>
-              <div className="bg-white p-2 rounded-lg border border-slate-200">
-                <strong className="text-slate-900 block font-bold mb-0.5">3. Deploy Web App</strong>
-                <span>Deploy &gt; Access: <strong>Anyone</strong></span>
-              </div>
-              <div className="bg-white p-2 rounded-lg border border-slate-200">
-                <strong className="text-slate-900 block font-bold mb-0.5">4. Copy Web App URL</strong>
-                <span>Paste into the URL box above</span>
-              </div>
-            </div>
 
             {showCodePreview && (
               <textarea
@@ -356,8 +359,8 @@ export const GoogleSettingsModal: React.FC<GoogleSettingsModalProps> = ({
                 value={GOOGLE_APPS_SCRIPT_CODE}
               />
             )}
-          </div>
-
+           </div>
+            
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-3 border-t border-slate-100">
             <div>
