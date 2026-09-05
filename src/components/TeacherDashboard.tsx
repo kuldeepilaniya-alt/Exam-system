@@ -40,7 +40,7 @@ import {
   TeacherUser,
 } from '../types';
 import { calculateClassRanks, getStudentExamResult } from '../utils/rankCalculations';
-import { downloadMeritListPDF, downloadStudentMarksheetPDF } from '../utils/pdfGenerator';
+import { generateMeritListPDF, downloadStudentMarksheetPDF } from '../utils/pdfGenerator';
 import {
   shareClassMeritListOnWhatsApp,
   shareStudentMarksheetOnWhatsApp,
@@ -534,13 +534,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     if (!activeExam || rankedStudents.length === 0) return;
     setIsGeneratingMeritPdf(true);
     try {
-      await downloadMeritListPDF(
+      const { doc, filename } = await generateMeritListPDF(
         activeExam.examName,
         selectedClass,
         rankedStudents,
         subjects,
         summaryMetrics
       );
+      doc.save(filename);
     } catch (err) {
       console.error('Error downloading merit list PDF:', err);
       alert('Failed to generate Merit List PDF. You can also use Print / PDF to save as PDF.');
@@ -590,14 +591,33 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     }
   };
 
-  const handleShareMeritListWhatsApp = () => {
+  const [isSharingMeritListPdf, setIsSharingMeritListPdf] = useState(false);
+
+  const handleShareMeritListWhatsApp = async () => {
     if (!activeExam || rankedStudents.length === 0) return;
-    shareClassMeritListOnWhatsApp(
-      activeExam.examName,
-      selectedClass,
-      rankedStudents,
-      summaryMetrics
-    );
+    setIsSharingMeritListPdf(true);
+    try {
+      // Lazy load to avoid circular dependencies
+      const { shareClassMeritListPDFOnWhatsApp } = await import('../utils/whatsappShare');
+      await shareClassMeritListPDFOnWhatsApp(
+        activeExam.examName,
+        selectedClass,
+        rankedStudents,
+        subjects,
+        summaryMetrics
+      );
+    } catch (err) {
+      console.error('Error sharing Merit List PDF:', err);
+      // Fallback to text
+      shareClassMeritListOnWhatsApp(
+        activeExam.examName,
+        selectedClass,
+        rankedStudents,
+        summaryMetrics
+      );
+    } finally {
+      setIsSharingMeritListPdf(false);
+    }
   };
 
   const handleShareSingleStudentMarksheetWhatsApp = async (rollNo: string) => {
@@ -1257,12 +1277,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             type="button"
             id="share-merit-list-whatsapp-btn"
             onClick={handleShareMeritListWhatsApp}
-            disabled={rankedStudents.length === 0}
+            disabled={isSharingMeritListPdf || rankedStudents.length === 0}
             title="Share Class Rank & Merit List PDF Summary on WhatsApp"
             className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-bold shadow-xs active:scale-95 transition disabled:opacity-60 cursor-pointer"
           >
-            <Share2 className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Share on WhatsApp</span>
+            <Share2 className={`h-3.5 w-3.5 ${isSharingMeritListPdf ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">{isSharingMeritListPdf ? 'Preparing PDF...' : 'Share on WhatsApp'}</span>
           </button>
 
           <button

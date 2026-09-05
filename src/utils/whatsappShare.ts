@@ -235,3 +235,56 @@ export function shareClassMeritListOnWhatsApp(
 
   window.open(url, '_blank', 'noopener,noreferrer');
 }
+
+/**
+ * Shares the Class Merit List PDF directly on WhatsApp
+ */
+export async function shareClassMeritListPDFOnWhatsApp(
+  examName: string,
+  className: string,
+  classRanks: ClassRankRow[],
+  subjects: string[],
+  summaryMetrics: { total: number; avg: number; topper: ClassRankRow | null; passRate: number },
+  targetMobile?: string
+): Promise<{ method: 'native-share' | 'download-and-web' }> {
+  // We need to import generateMeritListPDF. Wait, let's just do it directly.
+  const { generateMeritListPDF } = await import('./pdfGenerator');
+  const { blob, file, filename } = await generateMeritListPDF(examName, className, classRanks, subjects, summaryMetrics);
+  const message = formatClassMeritListWhatsAppMessage(examName, className, classRanks, summaryMetrics);
+  const cleanNumber = targetMobile ? normalizeWhatsAppNumber(targetMobile) : '';
+
+  if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: `Merit List - ${className} - ${examName}`,
+        text: message,
+      });
+      return { method: 'native-share' };
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        return { method: 'native-share' };
+      }
+      console.warn('Native file share failed:', err);
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+  const encodedText = encodeURIComponent(message);
+  let waUrl = '';
+  if (cleanNumber) {
+    waUrl = `https://wa.me/${cleanNumber}?text=${encodedText}`;
+  } else {
+    waUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+  }
+  window.open(waUrl, '_blank', 'noopener,noreferrer');
+  return { method: 'download-and-web' };
+}

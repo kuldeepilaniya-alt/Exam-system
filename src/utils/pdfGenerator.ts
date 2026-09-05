@@ -494,13 +494,13 @@ export async function downloadStudentMarksheetPDF(
 /**
  * Generates and downloads a Class Merit List PDF
  */
-export async function downloadMeritListPDF(
+export async function generateMeritListPDF(
   examName: string,
   className: string,
   classRanks: ClassRankRow[],
   subjects: string[],
   summaryMetrics: { total: number; avg: number; topper: ClassRankRow | null; passRate: number }
-): Promise<void> {
+): Promise<GeneratedPDFResult> {
   const container = document.createElement('div');
   container.style.position = 'fixed';
   container.style.left = '-9999px';
@@ -630,7 +630,17 @@ export async function downloadMeritListPDF(
 
     const cleanExam = examName.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
     const cleanClass = className.trim().replace(/[^a-zA-Z0-9_-]/g, '_');
-    pdf.save(`Merit_List_${cleanClass}_${cleanExam}.pdf`);
+    const filename = `Merit_List_${cleanClass}_${cleanExam}.pdf`;
+
+    const blob = pdf.output('blob');
+    const file = new File([blob], filename, { type: 'application/pdf' });
+
+    return {
+      doc: pdf,
+      blob,
+      file,
+      filename,
+    };
   } finally {
     if (document.body.contains(container)) {
       document.body.removeChild(container);
