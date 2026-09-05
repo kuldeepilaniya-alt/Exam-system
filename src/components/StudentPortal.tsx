@@ -631,7 +631,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               </div>
 
               {/* 1. Examination Terms Performance Cards */}
-              <div className="mb-8">
+              <div className="mb-8 print:hidden">
                 <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">
                   1. Examination Terms Performance Cards
                 </h4>
@@ -707,11 +707,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                           </div>
 
                           {/* Growth indicator */}
-                          <div className="mt-2 text-[10px]">
-                            {res.isUpcoming ? (
-                              <span className="text-slate-400">• Scheduled</span>
-                            ) : pctDiff !== null ? (
-                              pctDiff >= 0 ? (
+                          {pctDiff !== null && (
+                            <div className="mt-2 text-[10px]">
+                              {pctDiff >= 0 ? (
                                 <span className="font-bold text-emerald-600 flex items-center gap-0.5">
                                   <TrendingUp className="h-3 w-3" />
                                   +{pctDiff}% vs previous
@@ -721,11 +719,9 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                                   <TrendingDown className="h-3 w-3" />
                                   {pctDiff}% vs previous
                                 </span>
-                              )
-                            ) : (
-                              <span className="text-slate-400 font-semibold">• Baseline Term</span>
-                            )}
-                          </div>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         <div className="mt-3 pt-2 border-t border-slate-200/80 flex items-center justify-between">
