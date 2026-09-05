@@ -25,6 +25,10 @@
     padding: 0 !important;
   }
 
+  * {
+    border-radius: 0 !important;
+  }
+
   header,
   footer,
   .print\:hidden {
@@ -42,7 +46,7 @@
     margin: 0 !important;
     padding: 12px !important;
     width: 100% !important;
-    border-radius: 8px !important;
+    
     min-height: 250mm !important;
     display: flex !important;
     flex-direction: column !important;
@@ -79,7 +83,7 @@
     margin-top: 0 !important;
     padding: 12px !important;
     width: 100% !important;
-    border-radius: 8px !important;
+    
     min-height: 250mm !important;
   }
 

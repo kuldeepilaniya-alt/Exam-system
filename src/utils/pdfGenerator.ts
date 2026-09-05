@@ -67,13 +67,13 @@ export async function generateStudentMarksheetPDF(
           currentResult.isUpcoming ? '#fef3c7' : '#ecfdf5'
         }; color: ${currentResult.isUpcoming ? '#92400e' : '#065f46'}; border: 1px solid ${
           currentResult.isUpcoming ? '#fde68a' : '#a7f3d0'
-        }; padding: 0 16px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">
+        }; padding: 0 16px;  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">
           ${currentResult.isUpcoming ? 'UPCOMING' : 'STATEMENT OF MARKS'} — ${exam.examName.toUpperCase()} • SESSION 2026-27
         </div>
       </div>
 
       <!-- Student Metadata Box (4 Columns) -->
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #cbd5e1; border-radius: 10px; background-color: #f8fafc; margin-bottom: 16px; overflow: hidden;">
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #cbd5e1;  background-color: #f8fafc; margin-bottom: 16px; overflow: hidden;">
         <div style="padding: 10px 12px; text-align: center; border-right: 1px solid #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
           <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">Class &amp; Section</div>
           <div style="font-size: 13.5px; font-weight: 700; color: #0f172a; margin-top: 3px; line-height: 1.2;">${studentClass}</div>
@@ -93,7 +93,7 @@ export async function generateStudentMarksheetPDF(
       </div>
 
       <!-- Highlights Banner (Total, %, Rank, Status) -->
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #cbd5e1; border-radius: 10px; background-color: #ffffff; margin-bottom: 20px; overflow: hidden;">
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #cbd5e1;  background-color: #ffffff; margin-bottom: 20px; overflow: hidden;">
         <div style="padding: 12px 10px; text-align: center; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; justify-content: center; align-items: center;">
           <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Total Marks</div>
           <div style="font-size: 19px; font-weight: 800; color: #0f172a; margin-top: 4px; font-weight: 700; line-height: 1.2; display: flex; align-items: baseline; justify-content: center; gap: 4px;">
@@ -123,7 +123,7 @@ export async function generateStudentMarksheetPDF(
         <div style="padding: 12px 10px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
           <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Result Status</div>
           <div style="margin-top: 4px; display: flex; align-items: center; justify-content: center;">
-            <span style="display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 14px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; line-height: 1; vertical-align: middle; line-height: 1.5; background-color: ${
+            <span style="display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 14px;  font-size: 11px; font-weight: 800; text-transform: uppercase; line-height: 1; vertical-align: middle; line-height: 1.5; background-color: ${
               currentResult.isUpcoming ? '#fef3c7' : currentResult.status === 'PASSED' ? '#dcfce7' : '#fee2e2'
             }; color: ${
               currentResult.isUpcoming ? '#92400e' : currentResult.status === 'PASSED' ? '#166534' : '#991b1b'
@@ -182,7 +182,7 @@ export async function generateStudentMarksheetPDF(
       </table>
 
       <!-- Evaluation Remarks Box -->
-      <div style="border: 1px solid #cbd5e1; border-radius: 10px; background-color: #f8fafc; padding: 12px 16px; margin-bottom: 24px;">
+      <div style="border: 1px solid #cbd5e1;  background-color: #f8fafc; padding: 12px 16px; margin-bottom: 24px;">
         <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">Academic Evaluation Remarks</div>
         <div style="font-size: 12px; font-weight: 600; font-style: italic; color: #334155; margin-top: 4px; line-height: 1.4;">
           "${currentResult.remarks}"
@@ -265,7 +265,7 @@ export async function generateStudentMarksheetPDF(
       </div>
 
       <!-- Student Summary Pill Bar -->
-      <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc; padding: 10px 14px; margin-bottom: 10px; font-size: 10px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1;  background-color: #f8fafc; padding: 10px 14px; margin-bottom: 10px; font-size: 10px;">
         <div>
           <span style="font-weight: 700; color: #64748b;">Student:</span>
           <strong style="color: #0f172a; margin-left: 4px;">${student.name.toUpperCase()}</strong>
@@ -276,7 +276,7 @@ export async function generateStudentMarksheetPDF(
           <span style="font-weight: 700; color: #64748b;">Class:</span>
           <strong style="color: #0f172a; margin-left: 4px;">${studentClass}</strong>
         </div>
-        <div style="font-weight: 800; color: #1e40af; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 8px; border-radius: 6px; font-size: 9px;">
+        <div style="font-weight: 800; color: #1e40af; background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 10px 8px;  font-size: 9px;">
           ${evaluatedCount} Evaluated Terms
         </div>
       </div>
@@ -382,7 +382,7 @@ export async function generateStudentMarksheetPDF(
       </div>
 
       <!-- Term Progression Insights & Advice Box -->
-      <div style="border: 1px solid #cbd5e1; border-radius: 8px; background-color: #f8fafc; padding: 10px 12px; margin-bottom: 12px;">
+      <div style="border: 1px solid #cbd5e1;  background-color: #f8fafc; padding: 10px 12px; margin-bottom: 12px;">
         <div style="font-size: 8px; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">
           Term Progression Insights &amp; Advice
         </div>
@@ -520,13 +520,13 @@ export async function downloadMeritListPDF(
       <p style="font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; margin: 3px 0 0 0; line-height: 1.2; text-align: center;">
         Affiliated to Board of Secondary Education, Rajasthan (RBSE)
       </p>
-      <div style="margin-top: 8px; display: inline-flex; align-items: center; justify-content: center; height: 26px; line-height: 1; vertical-align: middle; line-height: 1.5; background-color: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 0 16px; border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">
+      <div style="margin-top: 8px; display: inline-flex; align-items: center; justify-content: center; height: 26px; line-height: 1; vertical-align: middle; line-height: 1.5; background-color: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 0 16px;  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">
         OFFICIAL CLASS MERIT LIST — ${className} • ${examName.toUpperCase()}
       </div>
     </div>
 
     <!-- Summary Metrics Box -->
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #cbd5e1; border-radius: 10px; background-color: #f8fafc; margin-bottom: 16px; overflow: hidden; text-align: center;">
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #cbd5e1;  background-color: #f8fafc; margin-bottom: 16px; overflow: hidden; text-align: center;">
       <div style="padding: 10px; border-right: 1px solid #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
         <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Total Students</div>
         <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px; line-height: 1.2;">${summaryMetrics.total}</div>
