@@ -1,5 +1,6 @@
 import { ClassRankRow, StudentExamResult } from '../types';
 import { SCHOOL_INFO, getDisplayClassName } from '../data/mockDatabase';
+import { generateStudentMarksheetPDF } from './pdfGenerator';
 
 /**
  * Normalizes a phone number for WhatsApp wa.me links
@@ -8,7 +9,7 @@ import { SCHOOL_INFO, getDisplayClassName } from '../data/mockDatabase';
 export function normalizeWhatsAppNumber(phone: string): string {
   const digitsOnly = phone.replace(/\D/g, '');
   if (!digitsOnly) return '';
-  
+
   if (digitsOnly.length === 10) {
     return `91${digitsOnly}`;
   }
@@ -51,7 +52,7 @@ export function formatStudentMarksheetWhatsAppMessage(
       `🔔 *STATUS:* Upcoming / Examination Scheduled\n` +
       `• *Remarks:* "${result.remarks}"\n` +
       `───────────────────────\n` +
-      `🌟 _Issued by Govt Senior Secondary School, Piprali (RBSE)_`
+      `🌟 _Official Marksheet Document Issued by Govt. Sr. Sec. School, Sanwaloda Purohitan, Sikar (RBSE)_`
     );
   }
 
@@ -66,7 +67,7 @@ export function formatStudentMarksheetWhatsAppMessage(
 
   return (
     `🏫 *${schoolName.toUpperCase()}*\n` +
-    `📜 *OFFICIAL STUDENT MARKSHEET*\n` +
+    `📜 *OFFICIAL STUDENT MARKSHEET & PERFORMANCE REPORT*\n` +
     `🎯 *Exam:* ${exam.examName.toUpperCase()} (${exam.academicYear || '2026-27'})\n` +
     `───────────────────────\n` +
     `👤 *Student Name:* ${student.name}\n` +
@@ -84,12 +85,71 @@ export function formatStudentMarksheetWhatsAppMessage(
     `• *Status:* ${result.status === 'PASSED' ? '✅ PASSED' : '⚠️ NEEDS IMPROVEMENT'}\n` +
     `• *Teacher Remarks:* "${result.remarks}"\n` +
     `───────────────────────\n` +
-    `🌟 _Issued by Govt Senior Secondary School, Piprali (RBSE)_`
+    `📄 _Attached: 2-Page Official Marksheet & Term Progression PDF Document_\n` +
+    `🌟 _Govt. Sr. Sec. School, Sanwaloda Purohitan, Sikar (RBSE)_`
   );
 }
 
 /**
- * Opens WhatsApp to send student scorecard to their registered mobile number or general share
+ * Shares the student marksheet PDF directly on WhatsApp:
+ * 1. Generates 2-Page Official PDF matching the print document
+ * 2. Uses native Web Share API with attached PDF file on supported devices (Mobile Android/iOS)
+ * 3. Fallback: Automatically downloads the PDF file and launches WhatsApp with the detailed scorecard summary
+ */
+export async function shareStudentMarksheetPDFOnWhatsApp(
+  currentResult: StudentExamResult,
+  allExamResults: StudentExamResult[],
+  targetMobile?: string
+): Promise<{ method: 'native-share' | 'download-and-web' }> {
+  // Generate 2-Page PDF matching print design
+  const { blob, file, filename } = await generateStudentMarksheetPDF(currentResult, allExamResults);
+  const message = formatStudentMarksheetWhatsAppMessage(currentResult);
+  const cleanNumber = targetMobile ? normalizeWhatsAppNumber(targetMobile) : '';
+
+  // 1. Check if Web Share API supports file sharing (Mobile Chrome/Safari/WhatsApp)
+  if (typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: `${currentResult.student.name} - Marksheet`,
+        text: message,
+      });
+      return { method: 'native-share' };
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        // User closed or cancelled native share sheet
+        return { method: 'native-share' };
+      }
+      console.warn('Native file share failed, falling back to download and WhatsApp web:', err);
+    }
+  }
+
+  // 2. Fallback for Desktop browsers or environments without file share support:
+  // Auto-download the PDF
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+  // Open WhatsApp with pre-filled message
+  const encodedText = encodeURIComponent(message);
+  let waUrl = '';
+  if (cleanNumber) {
+    waUrl = `https://wa.me/${cleanNumber}?text=${encodedText}`;
+  } else {
+    waUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+  }
+
+  window.open(waUrl, '_blank', 'noopener,noreferrer');
+  return { method: 'download-and-web' };
+}
+
+/**
+ * Text-only WhatsApp sharing
  */
 export function shareStudentMarksheetOnWhatsApp(
   result: StudentExamResult,
@@ -97,7 +157,7 @@ export function shareStudentMarksheetOnWhatsApp(
 ): void {
   const message = formatStudentMarksheetWhatsAppMessage(result);
   const encodedText = encodeURIComponent(message);
-  
+
   const cleanNumber = targetMobile ? normalizeWhatsAppNumber(targetMobile) : '';
 
   let url = '';
@@ -163,7 +223,7 @@ export function shareClassMeritListOnWhatsApp(
 ): void {
   const message = formatClassMeritListWhatsAppMessage(examName, className, classRanks, summary);
   const encodedText = encodeURIComponent(message);
-  
+
   const cleanNumber = targetMobile ? normalizeWhatsAppNumber(targetMobile) : '';
 
   let url = '';

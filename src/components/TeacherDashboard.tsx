@@ -44,6 +44,7 @@ import { downloadMeritListPDF, downloadStudentMarksheetPDF } from '../utils/pdfG
 import {
   shareClassMeritListOnWhatsApp,
   shareStudentMarksheetOnWhatsApp,
+  shareStudentMarksheetPDFOnWhatsApp,
 } from '../utils/whatsappShare';
 import { ConfirmationModal } from './ConfirmationModal';
 import {
@@ -599,7 +600,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     );
   };
 
-  const handleShareSingleStudentMarksheetWhatsApp = (rollNo: string) => {
+  const handleShareSingleStudentMarksheetWhatsApp = async (rollNo: string) => {
     if (!activeExam) return;
     const currentResult = getStudentExamResult(
       rollNo,
@@ -613,8 +614,23 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       alert('Could not compute marksheet for this student.');
       return;
     }
+
+    const applicableExams = exams.filter(
+      (e) => e.className.toString().trim() === activeExam.className.toString().trim()
+    );
+    const allExamResults = applicableExams
+      .map((exam) =>
+        getStudentExamResult(rollNo, exam.examId, students, exams, marks, subjectsMap)
+      )
+      .filter((res): res is NonNullable<typeof res> => res !== null);
+
     const studentObj = students.find((s) => s.rollNo.toString().trim() === rollNo.toString().trim());
-    shareStudentMarksheetOnWhatsApp(currentResult, studentObj?.contactNumber);
+    
+    try {
+      await shareStudentMarksheetPDFOnWhatsApp(currentResult, allExamResults, studentObj?.contactNumber);
+    } catch {
+      shareStudentMarksheetOnWhatsApp(currentResult, studentObj?.contactNumber);
+    }
   };
 
   // Auto Sync: Get student data from sheet, create complete sample marks, and auto-sync
