@@ -530,6 +530,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   const [isGeneratingMeritPdf, setIsGeneratingMeritPdf] = useState(false);
   const [downloadingMarksheetRoll, setDownloadingMarksheetRoll] = useState<string | null>(null);
 
+  // Compute class teacher name
+  const classTeacher = activeExam ? teachers.find((t) => t.assignedClass === selectedClass) : null;
+  const classTeacherName = classTeacher ? classTeacher.name : '';
+
   const handleDownloadMeritPDF = async () => {
     if (!activeExam || rankedStudents.length === 0) return;
     setIsGeneratingMeritPdf(true);
@@ -539,7 +543,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         selectedClass,
         rankedStudents,
         subjects,
-        summaryMetrics
+        summaryMetrics,
+        classTeacherName
       );
       doc.save(filename);
     } catch (err) {
@@ -582,7 +587,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
     setDownloadingMarksheetRoll(rollNo);
     try {
-      await downloadStudentMarksheetPDF(currentResult, allExamResults);
+      await downloadStudentMarksheetPDF(currentResult, allExamResults, classTeacherName);
     } catch (err) {
       console.error('Failed to download student marksheet PDF:', err);
       alert('Failed to generate student marksheet PDF.');
@@ -604,7 +609,9 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         selectedClass,
         rankedStudents,
         subjects,
-        summaryMetrics
+        summaryMetrics,
+        undefined,
+        classTeacherName
       );
     } catch (err) {
       console.error('Error sharing Merit List PDF:', err);
@@ -647,7 +654,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     const studentObj = students.find((s) => s.rollNo.toString().trim() === rollNo.toString().trim());
     
     try {
-      await shareStudentMarksheetPDFOnWhatsApp(currentResult, allExamResults, studentObj?.contactNumber);
+      await shareStudentMarksheetPDFOnWhatsApp(currentResult, allExamResults, studentObj?.contactNumber, classTeacherName);
     } catch {
       shareStudentMarksheetOnWhatsApp(currentResult, studentObj?.contactNumber);
     }
@@ -1364,8 +1371,11 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       {/* Class Merit List Table Header (Print Only) */}
       <div className="hidden print:block text-center mb-6">
         <h2 className="text-xl font-bold uppercase">{SCHOOL_INFO.name}</h2>
-        <p className="text-xs text-slate-600">CLASS EXAMINATION MERIT LIST &amp; RANK STATEMENT • PRINCIPAL: {SCHOOL_INFO.principal.toUpperCase()}</p>
-        <div className="mt-2 text-sm font-semibold">
+        <p className="text-xs text-slate-600">CLASS EXAMINATION MERIT LIST &amp; RANK STATEMENT</p>
+        <div className="mt-1 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+          {classTeacherName ? `Class Teacher: ${classTeacherName} • ` : ''}Principal: {SCHOOL_INFO.principal.toUpperCase()}
+        </div>
+        <div className="mt-3 text-sm font-semibold">
           Class: {selectedClass} • Exam: {activeExam?.examName} • Date: {activeExam?.date}
         </div>
       </div>

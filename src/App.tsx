@@ -474,6 +474,7 @@ export default function App() {
             subjectsMap={subjectsMap}
             initialRollNo={selectedStudentRoll}
             initialExamId={selectedExamIdToView}
+            teachers={teachers}
           />
         ) : activeTeacher ? (
           <TeacherDashboard

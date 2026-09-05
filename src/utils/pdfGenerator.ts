@@ -17,7 +17,8 @@ export interface GeneratedPDFResult {
  */
 export async function generateStudentMarksheetPDF(
   currentResult: StudentExamResult,
-  allExamResults: StudentExamResult[]
+  allExamResults: StudentExamResult[],
+  classTeacherName: string = ''
 ): Promise<GeneratedPDFResult> {
   const { student, exam } = currentResult;
   const studentClass = getDisplayClassName(student.className);
@@ -63,11 +64,7 @@ export async function generateStudentMarksheetPDF(
         <p style="font-size: 10.5px; font-weight: 700; color: #475569; text-transform: uppercase; margin: 4px 0 0 0; letter-spacing: 0.05em; line-height: 1.2; text-align: center;">
           Affiliated to Board of Secondary Education, Rajasthan (RBSE)
         </p>
-        <div style="margin-top: 8px; display: inline-flex; align-items: center; justify-content: center; height: 26px; line-height: 1; vertical-align: middle; line-height: 1.5; background-color: ${
-          currentResult.isUpcoming ? '#fef3c7' : '#ecfdf5'
-        }; color: ${currentResult.isUpcoming ? '#92400e' : '#065f46'}; border: 1px solid ${
-          currentResult.isUpcoming ? '#fde68a' : '#a7f3d0'
-        }; padding: 0 16px;  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">
+        <div style="margin-top: 8px; display: inline-flex; align-items: center; justify-content: center; height: 26px; line-height: 1; vertical-align: middle; line-height: 1.5; color: ${currentResult.isUpcoming ? '#92400e' : '#0f172a'}; padding: 0; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">
           ${currentResult.isUpcoming ? 'UPCOMING' : 'STATEMENT OF MARKS'} — ${exam.examName.toUpperCase()} • SESSION 2026-27
         </div>
       </div>
@@ -123,11 +120,9 @@ export async function generateStudentMarksheetPDF(
         <div style="padding: 12px 10px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center;">
           <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Result Status</div>
           <div style="margin-top: 4px; display: flex; align-items: center; justify-content: center;">
-            <span style="display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 14px;  font-size: 11px; font-weight: 800; text-transform: uppercase; line-height: 1; vertical-align: middle; line-height: 1.5; background-color: ${
-              currentResult.isUpcoming ? '#fef3c7' : currentResult.status === 'PASSED' ? '#dcfce7' : '#fee2e2'
-            }; color: ${
+            <span style="display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 14px;  font-size: 11px; font-weight: 800; text-transform: uppercase; line-height: 1; vertical-align: middle; line-height: 1.5; color: ${
               currentResult.isUpcoming ? '#92400e' : currentResult.status === 'PASSED' ? '#166534' : '#991b1b'
-            }; border: ${currentResult.isUpcoming ? '1px solid #fde68a' : 'none'};">
+            };">
               ${currentResult.isUpcoming ? 'Upcoming' : currentResult.status}
             </span>
           </div>
@@ -194,7 +189,9 @@ export async function generateStudentMarksheetPDF(
     <div>
       <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center; padding-top: 18px; border-top: 1px solid #cbd5e1;">
         <div style="display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center;">
-          <div style="height: 28px; width: 80%; border-bottom: 1px dashed #94a3b8;"></div>
+          <div style="height: 28px; width: 80%; border-bottom: 1px dashed #94a3b8; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 12px; font-style: italic; font-weight: 700; color: #334155; line-height: 1;">${classTeacherName}</span>
+          </div>
           <div style="font-size: 9.5px; font-weight: 800; text-transform: uppercase; color: #475569; margin-top: 6px; letter-spacing: 0.05em; line-height: 1.2;">
             Class Teacher
           </div>
@@ -485,9 +482,10 @@ export async function generateStudentMarksheetPDF(
  */
 export async function downloadStudentMarksheetPDF(
   currentResult: StudentExamResult,
-  allExamResults: StudentExamResult[]
+  allExamResults: StudentExamResult[],
+  classTeacherName: string = ''
 ): Promise<void> {
-  const { doc, filename } = await generateStudentMarksheetPDF(currentResult, allExamResults);
+  const { doc, filename } = await generateStudentMarksheetPDF(currentResult, allExamResults, classTeacherName);
   doc.save(filename);
 }
 
@@ -499,7 +497,8 @@ export async function generateMeritListPDF(
   className: string,
   classRanks: ClassRankRow[],
   subjects: string[],
-  summaryMetrics: { total: number; avg: number; topper: ClassRankRow | null; passRate: number }
+  summaryMetrics: { total: number; avg: number; topper: ClassRankRow | null; passRate: number },
+  classTeacherName: string = ''
 ): Promise<GeneratedPDFResult> {
   const container = document.createElement('div');
   container.style.position = 'fixed';
@@ -520,7 +519,7 @@ export async function generateMeritListPDF(
       <p style="font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; margin: 3px 0 0 0; line-height: 1.2; text-align: center;">
         Affiliated to Board of Secondary Education, Rajasthan (RBSE)
       </p>
-      <div style="margin-top: 8px; display: inline-flex; align-items: center; justify-content: center; height: 26px; line-height: 1; vertical-align: middle; line-height: 1.5; background-color: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; padding: 0 16px;  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">
+      <div style="margin-top: 8px; display: inline-flex; align-items: center; justify-content: center; height: 26px; line-height: 1; vertical-align: middle; line-height: 1.5; color: #0f172a; padding: 0; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">
         OFFICIAL CLASS MERIT LIST — ${className} • ${examName.toUpperCase()}
       </div>
     </div>
@@ -590,7 +589,9 @@ export async function generateMeritListPDF(
 
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center; padding-top: 18px; border-top: 1px solid #cbd5e1;">
       <div style="display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center;">
-        <div style="height: 25px; width: 80%; border-bottom: 1px dashed #94a3b8;"></div>
+        <div style="height: 25px; width: 80%; border-bottom: 1px dashed #94a3b8; display: flex; align-items: center; justify-content: center;">
+          <span style="font-size: 10px; font-style: italic; font-weight: 700; color: #334155; line-height: 1;">${classTeacherName}</span>
+        </div>
         <div style="font-size: 9px; font-weight: 800; text-transform: uppercase; color: #475569; margin-top: 4px; line-height: 1.2;">Class Teacher</div>
       </div>
       <div style="display: flex; flex-direction: column; justify-content: flex-end; align-items: center; text-align: center;">

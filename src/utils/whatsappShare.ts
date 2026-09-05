@@ -99,10 +99,11 @@ export function formatStudentMarksheetWhatsAppMessage(
 export async function shareStudentMarksheetPDFOnWhatsApp(
   currentResult: StudentExamResult,
   allExamResults: StudentExamResult[],
-  targetMobile?: string
+  targetMobile?: string,
+  classTeacherName: string = ''
 ): Promise<{ method: 'native-share' | 'download-and-web' }> {
   // Generate 2-Page PDF matching print design
-  const { blob, file, filename } = await generateStudentMarksheetPDF(currentResult, allExamResults);
+  const { blob, file, filename } = await generateStudentMarksheetPDF(currentResult, allExamResults, classTeacherName);
   const message = formatStudentMarksheetWhatsAppMessage(currentResult);
   const cleanNumber = targetMobile ? normalizeWhatsAppNumber(targetMobile) : '';
 
@@ -245,11 +246,12 @@ export async function shareClassMeritListPDFOnWhatsApp(
   classRanks: ClassRankRow[],
   subjects: string[],
   summaryMetrics: { total: number; avg: number; topper: ClassRankRow | null; passRate: number },
-  targetMobile?: string
+  targetMobile?: string,
+  classTeacherName: string = ''
 ): Promise<{ method: 'native-share' | 'download-and-web' }> {
   // We need to import generateMeritListPDF. Wait, let's just do it directly.
   const { generateMeritListPDF } = await import('./pdfGenerator');
-  const { blob, file, filename } = await generateMeritListPDF(examName, className, classRanks, subjects, summaryMetrics);
+  const { blob, file, filename } = await generateMeritListPDF(examName, className, classRanks, subjects, summaryMetrics, classTeacherName);
   const message = formatClassMeritListWhatsAppMessage(examName, className, classRanks, summaryMetrics);
   const cleanNumber = targetMobile ? normalizeWhatsAppNumber(targetMobile) : '';
 

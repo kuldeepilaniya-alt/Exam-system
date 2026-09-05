@@ -14,7 +14,7 @@ import {
   User,
   XCircle,
 } from 'lucide-react';
-import { Exam, MarkRecord, Student } from '../types';
+import { Exam, MarkRecord, Student, TeacherUser } from '../types';
 import { getStudentExamResult } from '../utils/rankCalculations';
 import { getDisplayClassName, normalizeClassName, SCHOOL_INFO } from '../data/mockDatabase';
 import { downloadStudentMarksheetPDF } from '../utils/pdfGenerator';
@@ -30,6 +30,7 @@ interface StudentPortalProps {
   subjectsMap: { [className: string]: string[] };
   initialRollNo?: string | null;
   initialExamId?: string | null;
+  teachers?: TeacherUser[];
 }
 
 export const StudentPortal: React.FC<StudentPortalProps> = ({
@@ -39,6 +40,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
   subjectsMap,
   initialRollNo,
   initialExamId,
+  teachers = [],
 }) => {
   const [rollNumberInput, setRollNumberInput] = useState<string>(initialRollNo || '');
   const [searchedRoll, setSearchedRoll] = useState<string>(initialRollNo || '');
@@ -95,6 +97,11 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
     );
   }, [student, activeExam, students, exams, marks, subjectsMap]);
 
+  // Compute class teacher name
+  const currentClass = currentResult?.student?.className;
+  const classTeacher = currentClass ? teachers.find((t) => t.assignedClass === currentClass) : null;
+  const classTeacherName = classTeacher ? classTeacher.name : '';
+
   // Compute all exam results for this student (for multi-exam performance progression)
   const allExamResults = useMemo(() => {
     if (!student || applicableExams.length === 0) return [];
@@ -134,7 +141,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
     if (!currentResult) return;
     setIsGeneratingPdf(true);
     try {
-      await downloadStudentMarksheetPDF(currentResult, allExamResults);
+      await downloadStudentMarksheetPDF(currentResult, allExamResults, classTeacherName);
       setToastMessage('✓ PDF Marksheet downloaded successfully!');
       setTimeout(() => setToastMessage(null), 4000);
     } catch (err) {
@@ -152,7 +159,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
       const { method } = await shareStudentMarksheetPDFOnWhatsApp(
         currentResult,
         allExamResults,
-        student?.contactNumber
+        student?.contactNumber,
+        classTeacherName
       );
       if (method === 'download-and-web') {
         setToastMessage(
@@ -371,10 +379,10 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                     Affiliated to Board of Secondary Education, Rajasthan (RBSE)
                   </p>
                   <div
-                    className={`mt-3 inline-block rounded-full px-4 py-1 text-[11px] font-black uppercase tracking-wider ${
+                    className={`mt-3 inline-block px-4 py-1 text-[11px] font-black uppercase tracking-wider ${
                       currentResult.isUpcoming
-                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                        : 'bg-emerald-100 text-emerald-800'
+                        ? 'text-amber-900'
+                        : 'text-slate-900'
                     }`}
                   >
                     {currentResult.isUpcoming
@@ -473,17 +481,17 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                     </div>
                     <div className="mt-1.5 flex items-center justify-center">
                       {currentResult.isUpcoming ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-3.5 py-1 text-xs font-black text-amber-800 uppercase tracking-tight">
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-black text-amber-800 uppercase tracking-tight">
                           <Clock className="h-3.5 w-3.5 text-amber-600" />
                           UPCOMING
                         </span>
                       ) : currentResult.status === 'PASSED' ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3.5 py-1 text-xs font-black text-emerald-800 uppercase tracking-tight">
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-black text-emerald-800 uppercase tracking-tight">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                           PASSED
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3.5 py-1 text-xs font-black text-rose-800 uppercase tracking-tight">
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-black text-rose-800 uppercase tracking-tight">
                           <XCircle className="h-3.5 w-3.5 text-rose-600" />
                           {currentResult.status}
                         </span>
@@ -567,7 +575,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 <div className="mt-8 grid grid-cols-3 gap-6 pt-6 border-t border-slate-200 text-center">
                   <div>
                     <div className="h-10 border-b border-dashed border-slate-300 flex items-end justify-center pb-1">
-                      <span className="font-serif italic text-xs text-slate-600"></span>
+                      <span className="font-serif italic text-xs text-slate-600">{classTeacherName}</span>
                     </div>
                     <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                       Class Teacher
@@ -614,7 +622,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5 text-blue-600" />
                     <h3 className="text-base font-extrabold text-slate-900 tracking-tight uppercase">
-                      Term-by-Term Examination Performance &amp; Progression Report
+                      Term-by-Term Examination Performance Report
                     </h3>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
@@ -750,7 +758,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               {/* 2. Complete Examination History & Trajectory */}
               <div className="mb-8">
                 <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider mb-3">
-                  2. Complete Examination History &amp; Trajectory
+                  2. Complete Examination History
                 </h4>
                 <div className="overflow-x-auto border border-slate-200 rounded-xl">
                   <table className="w-full text-left text-xs">
@@ -877,7 +885,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                   Term Progression Insights &amp; Advice
                 </div>
                 <p className="mt-1 text-xs font-semibold text-slate-700 leading-relaxed">
-                  Student has appeared in {evaluatedCount} term examination(s). Maintain continuous revision and rigorous focus across all subjects for board examination preparation.
+                  Student has appeared in {evaluatedCount} term examination(s). Maintain continuous revision for board examination preparation.
                 </p>
               </div>
 
@@ -885,10 +893,10 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               <div className="mt-8 grid grid-cols-3 gap-6 pt-6 border-t border-slate-200 text-center">
                 <div>
                   <div className="h-8 border-b border-dashed border-slate-300 flex items-end justify-center pb-1">
-                    <span className="font-serif italic text-xs text-slate-600"></span>
+                    <span className="font-serif italic text-xs text-slate-600">Rakesh Sir</span>
                   </div>
                   <div className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Academic Counselor
+                    Board Exam Incharge
                   </div>
                 </div>
                 <div>
@@ -906,7 +914,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                     </span>
                   </div>
                   <div className="mt-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Principal (Institutional Stamp)
+                    Principal
                   </div>
                 </div>
               </div>
