@@ -128,7 +128,6 @@ export const DEFAULT_TEACHERS: TeacherUser[] = [
     name: 'Narendra Singh Chauhan',
     mobile: '9876543210',
     pin: '1234',
-    email: 'narendra.chauhan@gsss-sanwaloda.edu',
     assignedClass: 'All Classes',
     role: 'Principal',
   },
@@ -137,7 +136,6 @@ export const DEFAULT_TEACHERS: TeacherUser[] = [
     name: 'Rajesh Malhotra',
     mobile: '9123456780',
     pin: '4321',
-    email: 'rajesh.malhotra@gsss-sanwaloda.edu',
     assignedClass: '10A',
     role: 'Teacher',
   },
@@ -146,7 +144,6 @@ export const DEFAULT_TEACHERS: TeacherUser[] = [
     name: 'Kavita Sharma',
     mobile: '9988776655',
     pin: '9999',
-    email: 'kavita.sharma@gsss-sanwaloda.edu',
     assignedClass: '8A',
     role: 'Teacher',
   },
@@ -155,7 +152,6 @@ export const DEFAULT_TEACHERS: TeacherUser[] = [
     name: 'Virendra Singh',
     mobile: '9829012345',
     pin: '1122',
-    email: 'virendra.singh@gsss-sanwaloda.edu',
     assignedClass: '12A',
     role: 'Teacher',
   },
@@ -164,7 +160,6 @@ export const DEFAULT_TEACHERS: TeacherUser[] = [
     name: 'Gopal Lal Jat',
     mobile: '9414012345',
     pin: '3344',
-    email: 'gopallal.jat@gsss-sanwaloda.edu',
     assignedClass: '12B',
     role: 'Teacher',
   },
@@ -173,7 +168,6 @@ export const DEFAULT_TEACHERS: TeacherUser[] = [
     name: 'Mahesh Kumar Sharma',
     mobile: '9828012345',
     pin: '5566',
-    email: 'mahesh.sharma@gsss-sanwaloda.edu',
     assignedClass: '12C',
     role: 'Teacher',
   },
@@ -327,17 +321,19 @@ export function saveActiveTeacher(teacher: TeacherUser | null): void {
 
 export function getStoredLinkedSheetId(): string | null {
   try {
-    return localStorage.getItem(STORAGE_KEYS.LINKED_SHEET);
+    return localStorage.getItem(STORAGE_KEYS.LINKED_SHEET) || '1-PucE1sY7dJs_rFFQM9heWMLhMzrMrbMZD9YeDhs46Y';
   } catch {
-    return null;
+    return '1-PucE1sY7dJs_rFFQM9heWMLhMzrMrbMZD9YeDhs46Y';
   }
 }
 
 export function getStoredLinkedSheetUrl(): string | null {
   try {
-    return localStorage.getItem(STORAGE_KEYS.LINKED_SHEET_URL);
+    const id = getStoredLinkedSheetId();
+    return localStorage.getItem(STORAGE_KEYS.LINKED_SHEET_URL) || (id ? `https://docs.google.com/spreadsheets/d/${id}/edit` : null);
   } catch {
-    return null;
+    const id = getStoredLinkedSheetId();
+    return id ? `https://docs.google.com/spreadsheets/d/${id}/edit` : null;
   }
 }
 
@@ -351,9 +347,9 @@ export function saveLinkedSheetUrl(url: string | null): void {
 
 export function getStoredWebAppUrl(): string | null {
   try {
-    return localStorage.getItem(STORAGE_KEYS.WEB_APP_URL);
+    return localStorage.getItem(STORAGE_KEYS.WEB_APP_URL) || 'https://script.google.com/macros/s/AKfycbzAQPwVNSsISIM9ufKVYGInfAD_i7g3WY6nRI7MBFr-GPNqxyH_WJ5Pl_2ypTsKbFPl/exec';
   } catch {
-    return null;
+    return 'https://script.google.com/macros/s/AKfycbzAQPwVNSsISIM9ufKVYGInfAD_i7g3WY6nRI7MBFr-GPNqxyH_WJ5Pl_2ypTsKbFPl/exec';
   }
 }
 

@@ -46,7 +46,6 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState('');
   const [pin, setPin] = useState('');
-  const [email, setEmail] = useState('');
   const [assignedClass, setAssignedClass] = useState('All Classes');
   const [role, setRole] = useState<'Teacher' | 'Principal' | 'Admin'>('Teacher');
 
@@ -62,7 +61,6 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
     setName('');
     setMobile('');
     setPin(Math.floor(1000 + Math.random() * 9000).toString());
-    setEmail('');
     setAssignedClass('10A');
     setRole('Teacher');
     setIsAddModalOpen(true);
@@ -73,7 +71,6 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
     setName(teacher.name);
     setMobile(teacher.mobile);
     setPin(teacher.pin);
-    setEmail(teacher.email || '');
     setAssignedClass(teacher.assignedClass || 'All Classes');
     setRole(teacher.role);
   };
@@ -93,7 +90,6 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
       name: name.trim(),
       mobile: mobile.trim(),
       pin: pin.trim(),
-      email: email.trim() || undefined,
       assignedClass: assignedClass,
       role: role,
     };
@@ -123,7 +119,6 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
           name: name.trim(),
           mobile: mobile.trim(),
           pin: pin.trim(),
-          email: email.trim() || undefined,
           assignedClass: assignedClass,
           role: role,
         };
@@ -157,7 +152,6 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
     const matchesSearch =
       t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       t.mobile.includes(searchQuery) ||
-      (t.email && t.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (t.assignedClass && t.assignedClass.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesRole = selectedRoleFilter === 'ALL' || t.role === selectedRoleFilter;
@@ -272,14 +266,13 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
                 <th className="py-3.5 px-4">Assigned Class</th>
                 <th className="py-3.5 px-4">Mobile (Login)</th>
                 <th className="py-3.5 px-4">Security PIN</th>
-                <th className="py-3.5 px-4 hidden md:table-cell">Email</th>
                 <th className="py-3.5 px-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredTeachers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400 font-medium text-xs">
+                  <td colSpan={6} className="py-12 text-center text-slate-400 font-medium text-xs">
                     No faculty found matching search criteria.
                   </td>
                 </tr>
@@ -356,11 +349,6 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
                             {isVisible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                           </button>
                         </div>
-                      </td>
-
-                      {/* Email */}
-                      <td className="py-4 px-4 text-xs text-slate-500 font-medium hidden md:table-cell">
-                        {t.email || '-'}
                       </td>
 
                       {/* Actions */}
@@ -511,19 +499,6 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                  Email Address (Optional)
-                </label>
-                <input
-                  type="email"
-                  placeholder="e.g. teacher@gsss-sanwaloda.edu"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-hidden transition font-medium"
-                />
-              </div>
-
               <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button
                   type="button"
@@ -547,7 +522,7 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
       {/* Edit Teacher Modal */}
       {editingTeacher && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
@@ -646,18 +621,6 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
                     ))}
                   </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 px-3 text-xs text-slate-900 focus:bg-white focus:border-indigo-500 focus:outline-hidden transition font-medium"
-                />
               </div>
 
               <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-100">

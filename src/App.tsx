@@ -246,7 +246,6 @@ export default function App() {
       setGoogleSheetsState((prev) => ({
         ...prev,
         isConnected: true,
-        userEmail: teacher.email || null,
       }));
     }
     setCurrentView('teacher');

@@ -134,23 +134,8 @@ export function generateInitialMarks(
       // Merit curve based on student rank in class
       const meritTier = sIdx < 3 ? 'topper' : sIdx < 10 ? 'high' : sIdx < 20 ? 'average' : 'passing';
 
-      subjects.forEach((subj, subIdx) => {
-        const seed = baseSeed + subIdx * 13;
-        let score: number;
-        if (maxMarks === 20) {
-          // Rank Tests (Out of 20)
-          if (meritTier === 'topper') score = pseudoRand(seed, 17, 20);
-          else if (meritTier === 'high') score = pseudoRand(seed, 14, 18);
-          else if (meritTier === 'average') score = pseudoRand(seed, 10, 15);
-          else score = pseudoRand(seed, 8, 13);
-        } else {
-          // Pre Boards (Out of 80)
-          if (meritTier === 'topper') score = pseudoRand(seed, 68, 79);
-          else if (meritTier === 'high') score = pseudoRand(seed, 56, 72);
-          else if (meritTier === 'average') score = pseudoRand(seed, 42, 60);
-          else score = pseudoRand(seed, 32, 50);
-        }
-        marksObj[subj] = score;
+      subjects.forEach((subj) => {
+        marksObj[subj] = 0;
       });
 
       records.push({

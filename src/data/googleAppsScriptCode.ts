@@ -77,7 +77,12 @@ function doPost(e) {
       syncSubjects(ss, payload.subjectsMap);
     }
 
-    // 5. Append entry in Sync_Log Tab
+    // 5. Synchronize Teachers Tab (Name, Mobile, PIN, Assigned Class, Role)
+    if (payload.teachers && Array.isArray(payload.teachers)) {
+      syncTeachers(ss, payload.teachers);
+    }
+
+    // 6. Append entry in Sync_Log Tab
     logSync(ss, payload);
 
     return ContentService.createTextOutput(JSON.stringify({
@@ -111,6 +116,7 @@ function doGet(e) {
     var exams = readExamsFromSheet(ss);
     var marks = readMarksFromSheet(ss);
     var subjectsMap = readSubjectsFromSheet(ss);
+    var teachers = readTeachersFromSheet(ss);
 
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
@@ -119,6 +125,7 @@ function doGet(e) {
       exams: exams,
       marks: marks,
       subjectsMap: subjectsMap,
+      teachers: teachers,
       serverTime: new Date().toISOString()
     })).setMimeType(ContentService.MimeType.JSON);
 
@@ -308,6 +315,53 @@ function readSubjectsFromSheet(ss) {
     }
   }
   return map;
+}
+
+/**
+ * Reads Teachers sheet into structured objects (No Email column)
+ * Sequence: Name, Mobile, PIN, Assigned Class, Role
+ */
+function readTeachersFromSheet(ss) {
+  var sheet = ss.getSheetByName("Teachers");
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+
+  var headers = data[0].map(function (h) { return String(h).toLowerCase().trim(); });
+  
+  var nameIdx = headers.findIndex(function (h) { return h.indexOf("name") !== -1 || h.indexOf("teacher") !== -1; });
+  var mobileIdx = headers.findIndex(function (h) { return h.indexOf("mobile") !== -1 || h.indexOf("phone") !== -1 || h.indexOf("contact") !== -1; });
+  var pinIdx = headers.findIndex(function (h) { return h.indexOf("pin") !== -1 || h.indexOf("pass") !== -1; });
+  var classIdx = headers.findIndex(function (h) { return h.indexOf("class") !== -1; });
+  var roleIdx = headers.findIndex(function (h) { return h.indexOf("role") !== -1 || h.indexOf("designation") !== -1; });
+
+  if (nameIdx === -1) nameIdx = 0;
+  if (mobileIdx === -1) mobileIdx = 1;
+  if (pinIdx === -1) pinIdx = 2;
+  if (classIdx === -1) classIdx = 3;
+  if (roleIdx === -1) roleIdx = 4;
+
+  var list = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var name = row[nameIdx] ? String(row[nameIdx]).trim() : "";
+    var mobile = row[mobileIdx] ? String(row[mobileIdx]).replace(/\\D/g, "") : "";
+    if (!name && !mobile) continue;
+
+    var pin = row[pinIdx] ? String(row[pinIdx]).trim() : "1234";
+    var assignedClass = row[classIdx] ? String(row[classIdx]).trim() : "All Classes";
+    var role = row[roleIdx] ? String(row[roleIdx]).trim() : "Teacher";
+
+    list.push({
+      id: "T-" + (mobile || ("00" + i)),
+      name: name,
+      mobile: mobile,
+      pin: pin,
+      assignedClass: assignedClass,
+      role: role
+    });
+  }
+  return list;
 }
 
 // ----------------------------------------------------------------------------
@@ -537,7 +591,37 @@ function syncSubjects(ss, subjectsMap) {
 }
 
 /**
- * 5. Append Log entry in Sync_Log Sheet
+ * 5. Synchronize Teachers Tab (Name, Mobile, PIN, Assigned Class, Role)
+ */
+function syncTeachers(ss, teachers) {
+  var sheet = getOrCreateSheet(ss, "Teachers");
+  sheet.clear();
+
+  var headers = ["Name", "Mobile", "PIN", "Assigned Class", "Role"];
+  applyHeaderStyles(sheet, headers);
+
+  if (!teachers || teachers.length === 0) return;
+
+  var rows = teachers.map(function (t) {
+    return [
+      t.name || "",
+      t.mobile || "",
+      t.pin || "1234",
+      t.assignedClass || "All Classes",
+      t.role || "Teacher"
+    ];
+  });
+
+  sheet.getRange(2, 1, rows.length, headers.length).setValues(rows);
+  sheet.getRange(2, 2, rows.length, 4).setHorizontalAlignment("center");
+
+  for (var c = 1; c <= headers.length; c++) {
+    sheet.autoResizeColumn(c);
+  }
+}
+
+/**
+ * 6. Append Log entry in Sync_Log Sheet
  */
 function logSync(ss, payload) {
   var sheet = getOrCreateSheet(ss, "Sync_Log");

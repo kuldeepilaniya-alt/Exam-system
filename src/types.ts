@@ -40,7 +40,6 @@ export interface TeacherUser {
   name: string;
   mobile: string;
   pin: string; // 4-digit PIN
-  email?: string;
   assignedClass?: string; // e.g. "Class 10" or "All Classes"
   role: 'Teacher' | 'Principal' | 'Admin';
 }

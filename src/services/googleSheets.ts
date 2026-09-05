@@ -236,13 +236,13 @@ export function parseSubjectRows(allSubjectRows: (string | number)[][]): { [clas
 
 /**
  * Parses raw 2D row array for Teachers sheet into TeacherUser[]
+ * Sequence: Name, Mobile, PIN, Assigned Class, Role
  */
 export function parseTeacherRows(allTeacherRows: (string | number)[][]): TeacherUser[] {
   if (!allTeacherRows || allTeacherRows.length <= 1) return [];
   const header = allTeacherRows[0].map((h) => String(h || '').trim().toLowerCase());
   const dataRows = allTeacherRows.slice(1);
 
-  const emailIdx = header.findIndex((h) => h.includes('email'));
   const nameIdx = header.findIndex((h) => h.includes('name'));
   const mobileIdx = header.findIndex((h) => h.includes('mobile') || h.includes('phone'));
   const pinIdx = header.findIndex((h) => h.includes('pin') || h.includes('password'));
@@ -252,7 +252,6 @@ export function parseTeacherRows(allTeacherRows: (string | number)[][]): Teacher
   return dataRows
     .filter((r) => (nameIdx !== -1 ? r[nameIdx] : r[0]))
     .map((r, i) => {
-      const email = emailIdx !== -1 && r[emailIdx] ? String(r[emailIdx]).trim() : undefined;
       const name = nameIdx !== -1 && r[nameIdx] ? String(r[nameIdx]).trim() : `Teacher ${i + 1}`;
       const mobile = mobileIdx !== -1 && r[mobileIdx] ? String(r[mobileIdx]).trim() : '';
       const pin = pinIdx !== -1 && r[pinIdx] ? String(r[pinIdx]).trim() : '1234';
@@ -264,7 +263,6 @@ export function parseTeacherRows(allTeacherRows: (string | number)[][]): Teacher
         name,
         mobile,
         pin,
-        email,
         assignedClass,
         role,
       };
@@ -548,9 +546,8 @@ export async function syncDataToGoogleSheet(
 
   // 4. Teachers Sheet
   const teacherValues = [
-    ['Email', 'Name', 'Mobile', 'PIN', 'AssignedClass', 'Role'],
+    ['Name', 'Mobile', 'PIN', 'AssignedClass', 'Role'],
     ...data.teachers.map((t) => [
-      t.email || '',
       t.name,
       t.mobile,
       t.pin,

@@ -63,14 +63,13 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
       const result = await googleSignIn();
       if (result) {
         // Find existing or create teacher user profile from Google info
-        const userEmail = result.user.email?.toLowerCase() || '';
-        const existing = teachers.find((t) => t.email?.toLowerCase() === userEmail);
+        const displayName = result.user.displayName?.toLowerCase() || '';
+        const existing = teachers.find((t) => t.name.toLowerCase() === displayName);
         const teacherProfile: TeacherUser = existing || {
           id: `TCH-${Date.now()}`,
           name: result.user.displayName || 'Authorized Educator',
           mobile: teachers[0]?.mobile || '9876543210',
           pin: '1234',
-          email: result.user.email || undefined,
           assignedClass: 'All Classes',
           role: 'Teacher',
         };
