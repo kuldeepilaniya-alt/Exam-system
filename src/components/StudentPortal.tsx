@@ -357,7 +357,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 title="Print Official Marksheet"
               >
                 <Printer className="h-3.5 w-3.5" />
-                <span>Print</span>
+                <span>Print Marksheet</span>
               </button>
             </div>
           </div>

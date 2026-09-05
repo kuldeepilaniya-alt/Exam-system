@@ -1289,7 +1289,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-bold shadow-xs active:scale-95 transition disabled:opacity-60 cursor-pointer"
           >
             <Share2 className={`h-3.5 w-3.5 ${isSharingMeritListPdf ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">{isSharingMeritListPdf ? 'Preparing PDF...' : 'Share on WhatsApp'}</span>
+            <span className="hidden sm:inline">{isSharingMeritListPdf ? 'Preparing PDF...' : 'Share Report on WhatsApp'}</span>
           </button>
 
           <button
@@ -1300,7 +1300,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
           >
             <Printer className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Print</span>
+            <span className="hidden sm:inline">Print Class Report</span>
           </button>
         </div>
       </div>
@@ -1803,6 +1803,17 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       {/* Actions */}
                       <td className="py-3.5 px-4 text-right print:hidden whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
+                          
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditMarks(row)}
+                            title="Edit marks for this student"
+                            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                          >
+                            <Edit3 className="h-3 w-3 text-slate-500" />
+                            <span>Edit</span>
+                          </button>
+                          
                           <button
                             type="button"
                             id={`download-student-marksheet-${row.rollNo}`}
@@ -1826,15 +1837,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                             <span className="hidden md:inline">WhatsApp</span>
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={() => handleOpenEditMarks(row)}
-                            title="Edit marks for this student"
-                            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-                          >
-                            <Edit3 className="h-3 w-3 text-slate-500" />
-                            <span>Edit</span>
-                          </button>
                         </div>
                       </td>
                     </tr>
