@@ -2,7 +2,6 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { ClassRankRow, StudentExamResult } from '../types';
 import { SCHOOL_INFO, getDisplayClassName } from '../data/mockDatabase';
-import { calculateGrade } from './rankCalculations';
 
 export interface GeneratedPDFResult {
   doc: jsPDF;
@@ -135,17 +134,16 @@ export async function generateStudentMarksheetPDF(
         </div>
       </div>
 
-      <!-- Subject Table (With Grade Column) -->
+      <!-- Subject Table (Statement of Marks) -->
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 22px; font-size: 11px;">
         <thead>
           <tr style="background-color: #f1f5f9; border-top: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; text-transform: uppercase; font-size: 9.5px; font-weight: 800; color: #475569;">
             <th style="padding: 8px 10px; text-align: center; vertical-align: middle; width: 40px; border: 1px solid #cbd5e1;">#</th>
             <th style="padding: 8px 12px; text-align: left; vertical-align: middle; border: 1px solid #cbd5e1;">Subject Name</th>
-            <th style="padding: 8px 10px; text-align: center; vertical-align: middle; border: 1px solid #cbd5e1; width: 90px;">Max Marks</th>
-            <th style="padding: 8px 10px; text-align: center; vertical-align: middle; border: 1px solid #cbd5e1; width: 100px;">Marks Obtained</th>
-            <th style="padding: 8px 10px; text-align: center; vertical-align: middle; border: 1px solid #cbd5e1; width: 90px;">Percentage</th>
-            <th style="padding: 8px 10px; text-align: center; vertical-align: middle; border: 1px solid #cbd5e1; width: 75px;">Grade</th>
-            <th style="padding: 8px 12px; text-align: right; vertical-align: middle; border: 1px solid #cbd5e1; width: 85px;">Result</th>
+            <th style="padding: 8px 10px; text-align: center; vertical-align: middle; border: 1px solid #cbd5e1; width: 100px;">Max Marks</th>
+            <th style="padding: 8px 10px; text-align: center; vertical-align: middle; border: 1px solid #cbd5e1; width: 120px;">Marks Obtained</th>
+            <th style="padding: 8px 10px; text-align: center; vertical-align: middle; border: 1px solid #cbd5e1; width: 105px;">Percentage</th>
+            <th style="padding: 8px 12px; text-align: right; vertical-align: middle; border: 1px solid #cbd5e1; width: 95px;">Result</th>
           </tr>
         </thead>
         <tbody>
@@ -157,8 +155,7 @@ export async function generateStudentMarksheetPDF(
               <td style="padding: 7px 12px; text-align: left; vertical-align: middle; font-weight: 700; color: #0f172a; border: 1px solid #cbd5e1;">${sub.name}</td>
               <td style="padding: 7px 10px; text-align: center; vertical-align: middle; color: #475569; font-family: monospace; border: 1px solid #cbd5e1;">${sub.maxMarks}</td>
               <td style="padding: 7px 10px; text-align: center; vertical-align: middle; font-weight: 800; color: #0f172a; font-family: monospace; border: 1px solid #cbd5e1;">${currentResult.isUpcoming ? '-' : sub.obtainedMarks}</td>
-              <td style="padding: 7px 10px; text-align: center; vertical-align: middle; color: #475569; font-family: monospace; border: 1px solid #cbd5e1;">${currentResult.isUpcoming ? '-' : `${sub.percentage}%`}</td>
-              <td style="padding: 7px 10px; text-align: center; vertical-align: middle; font-weight: 800; color: #2563eb; font-family: monospace; border: 1px solid #cbd5e1;">${currentResult.isUpcoming ? '-' : calculateGrade(sub.percentage)}</td>
+              <td style="padding: 7px 10px; text-align: center; vertical-align: middle; font-weight: 800; color: #2563eb; font-family: monospace; border: 1px solid #cbd5e1;">${currentResult.isUpcoming ? '-' : `${sub.percentage}%`}</td>
               <td style="padding: 7px 12px; text-align: right; vertical-align: middle; font-weight: 800; color: ${
                 currentResult.isUpcoming ? '#92400e' : sub.isPassing ? '#16a34a' : '#dc2626'
               }; border: 1px solid #cbd5e1;">
@@ -175,7 +172,6 @@ export async function generateStudentMarksheetPDF(
             <td style="padding: 8px 10px; text-align: center; vertical-align: middle; font-family: monospace; border: 1px solid #cbd5e1;">${currentResult.totalMaxMarks}</td>
             <td style="padding: 8px 10px; text-align: center; vertical-align: middle; font-family: monospace; color: #2563eb; font-size: 13px; border: 1px solid #cbd5e1;">${currentResult.isUpcoming ? '-' : currentResult.totalObtainedMarks}</td>
             <td style="padding: 8px 10px; text-align: center; vertical-align: middle; font-family: monospace; color: #059669; font-size: 13px; border: 1px solid #cbd5e1;">${currentResult.isUpcoming ? '-' : `${currentResult.percentage}%`}</td>
-            <td style="padding: 8px 10px; text-align: center; vertical-align: middle; font-family: monospace; color: #2563eb; font-size: 12px; border: 1px solid #cbd5e1;">${currentResult.isUpcoming ? '-' : calculateGrade(currentResult.percentage)}</td>
             <td style="padding: 8px 12px; text-align: right; vertical-align: middle; color: ${
               currentResult.isUpcoming ? '#92400e' : currentResult.status === 'PASSED' ? '#16a34a' : '#dc2626'
             }; border: 1px solid #cbd5e1;">
@@ -353,12 +349,11 @@ export async function generateStudentMarksheetPDF(
             <tr style="background-color: #f1f5f9; border-top: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; text-transform: uppercase; font-size: 8px; font-weight: 800; color: #475569;">
               <th style="padding: 4px 6px; text-align: left; border: 1px solid #cbd5e1;">Examination Name</th>
               <th style="padding: 4px 6px; text-align: center; border: 1px solid #cbd5e1; width: 75px;">Date</th>
-              <th style="padding: 4px 6px; text-align: center; border: 1px solid #cbd5e1; width: 65px;">Max Marks</th>
-              <th style="padding: 4px 6px; text-align: center; border: 1px solid #cbd5e1; width: 65px;">Obtained</th>
-              <th style="padding: 4px 6px; text-align: center; border: 1px solid #cbd5e1; width: 70px;">Percentage</th>
-              <th style="padding: 4px 6px; text-align: center; border: 1px solid #cbd5e1; width: 70px;">Class Rank</th>
-              <th style="padding: 4px 6px; text-align: center; border: 1px solid #cbd5e1; width: 55px;">Grade</th>
-              <th style="padding: 4px 6px; text-align: right; border: 1px solid #cbd5e1; width: 65px;">Status</th>
+              <th style="padding: 4px 6px; text-align: center; border: 1px solid #cbd5e1; width: 75px;">Max Marks</th>
+              <th style="padding: 4px 6px; text-align: center; border: 1px solid #cbd5e1; width: 75px;">Obtained</th>
+              <th style="padding: 4px 6px; text-align: center; border: 1px solid #cbd5e1; width: 80px;">Percentage</th>
+              <th style="padding: 4px 6px; text-align: center; border: 1px solid #cbd5e1; width: 80px;">Class Rank</th>
+              <th style="padding: 4px 6px; text-align: right; border: 1px solid #cbd5e1; width: 70px;">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -372,7 +367,6 @@ export async function generateStudentMarksheetPDF(
                 <td style="padding: 3.5px 6px; text-align: center; font-family: monospace; font-weight: 800; color: #2563eb; border: 1px solid #cbd5e1;">${res.isUpcoming ? '-' : res.totalObtainedMarks}</td>
                 <td style="padding: 3.5px 6px; text-align: center; font-family: monospace; font-weight: 800; color: #059669; border: 1px solid #cbd5e1;">${res.isUpcoming ? '-' : `${res.percentage}%`}</td>
                 <td style="padding: 3.5px 6px; text-align: center; font-family: monospace; font-weight: 800; color: #0f172a; border: 1px solid #cbd5e1;">${res.isUpcoming ? 'Upcoming' : `#${res.rank}/${res.totalStudentsInClass}`}</td>
-                <td style="padding: 3.5px 6px; text-align: center; font-family: monospace; font-weight: 800; color: #2563eb; border: 1px solid #cbd5e1;">${res.isUpcoming ? '-' : calculateGrade(res.percentage)}</td>
                 <td style="padding: 3.5px 6px; text-align: right; font-weight: 800; color: ${
                   res.isUpcoming ? '#92400e' : res.status === 'PASSED' ? '#16a34a' : '#dc2626'
                 }; border: 1px solid #cbd5e1;">
@@ -429,6 +423,20 @@ export async function generateStudentMarksheetPDF(
               )
               .join('')}
           </tbody>
+          <tfoot>
+            <tr style="background-color: #f8fafc; border-top: 2px solid #0f172a; font-weight: 800; color: #0f172a;">
+              <td style="padding: 4px 6px; font-weight: 800; text-transform: uppercase; font-size: 8px; border: 1px solid #cbd5e1;">TOTAL MARKS</td>
+              ${allExamResults
+                .map(
+                  (res) => `
+                <td style="padding: 4px 4px; text-align: center; font-family: monospace; font-size: 8px; font-weight: 800; color: #2563eb; border: 1px solid #cbd5e1;">
+                  ${res.isUpcoming ? '-' : `${res.totalObtainedMarks} / ${res.totalMaxMarks}`}
+                </td>
+              `
+                )
+                .join('')}
+            </tr>
+          </tfoot>
         </table>
       </div>
 

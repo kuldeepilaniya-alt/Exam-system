@@ -15,7 +15,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { Exam, MarkRecord, Student } from '../types';
-import { calculateGrade, getStudentExamResult } from '../utils/rankCalculations';
+import { getStudentExamResult } from '../utils/rankCalculations';
 import { getDisplayClassName, normalizeClassName, SCHOOL_INFO } from '../data/mockDatabase';
 import { downloadStudentMarksheetPDF } from '../utils/pdfGenerator';
 import {
@@ -492,7 +492,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                   </div>
                 </div>
 
-                {/* Subject Breakdown Table (With Grade Column) */}
+                {/* Subject Breakdown Table (Statement of Marks) */}
                 <div className="mt-6 overflow-x-auto border border-slate-200 rounded-xl">
                   <table className="w-full text-left text-sm">
                     <thead>
@@ -502,7 +502,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                         <th className="py-3 px-4 text-center">Max Marks</th>
                         <th className="py-3 px-4 text-center">Marks Obtained</th>
                         <th className="py-3 px-4 text-center">Percentage</th>
-                        <th className="py-3 px-4 text-center">Grade</th>
                         <th className="py-3 px-4 text-right">Result</th>
                       </tr>
                     </thead>
@@ -515,11 +514,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                           <td className="py-3 px-4 text-center font-bold font-mono text-slate-900">
                             {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : sub.obtainedMarks}
                           </td>
-                          <td className="py-3 px-4 text-center text-xs font-mono text-slate-600">
+                          <td className="py-3 px-4 text-center text-xs font-mono text-blue-600 font-bold">
                             {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : `${sub.percentage}%`}
-                          </td>
-                          <td className="py-3 px-4 text-center font-mono font-bold text-blue-600">
-                            {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : calculateGrade(sub.percentage)}
                           </td>
                           <td className="py-3 px-4 text-right">
                             {currentResult.isUpcoming ? (
@@ -542,11 +538,8 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                         <td className="py-3 px-4 text-center font-mono font-extrabold text-blue-600">
                           {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : currentResult.totalObtainedMarks}
                         </td>
-                        <td className="py-3 px-4 text-center font-mono font-bold">
+                        <td className="py-3 px-4 text-center font-mono font-bold text-emerald-600">
                           {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : `${currentResult.percentage}%`}
-                        </td>
-                        <td className="py-3 px-4 text-center font-mono font-bold text-blue-600">
-                          {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : calculateGrade(currentResult.percentage)}
                         </td>
                         <td className="py-3 px-4 text-right font-extrabold text-emerald-600">
                           {currentResult.isUpcoming ? (
@@ -773,7 +766,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                         <th className="py-2.5 px-3 text-center">Obtained</th>
                         <th className="py-2.5 px-3 text-center">Percentage</th>
                         <th className="py-2.5 px-3 text-center">Class Rank</th>
-                        <th className="py-2.5 px-3 text-center">Grade</th>
                         <th className="py-2.5 px-3 text-right">Status</th>
                       </tr>
                     </thead>
@@ -791,9 +783,6 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                           </td>
                           <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-900">
                             {res.isUpcoming ? 'Upcoming' : `#${res.rank}/${res.totalStudentsInClass}`}
-                          </td>
-                          <td className="py-2.5 px-3 text-center font-mono font-bold text-blue-600">
-                            {res.isUpcoming ? '-' : calculateGrade(res.percentage)}
                           </td>
                           <td className="py-2.5 px-3 text-right">
                             {res.isUpcoming ? (
@@ -863,6 +852,25 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                         </tr>
                       ))}
                     </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 border-slate-900 bg-slate-50 font-bold text-slate-900">
+                        <td className="py-2.5 px-3 font-extrabold uppercase text-[10px] tracking-wider">
+                          Total Marks
+                        </td>
+                        {allExamResults.map((res) => (
+                          <td
+                            key={res.exam.examId}
+                            className="py-2.5 px-2 text-center font-mono font-extrabold text-blue-600 text-xs"
+                          >
+                            {res.isUpcoming ? (
+                              <span className="text-slate-400 font-normal">-</span>
+                            ) : (
+                              `${res.totalObtainedMarks} / ${res.totalMaxMarks}`
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    </tfoot>
                   </table>
                 </div>
               </div>
