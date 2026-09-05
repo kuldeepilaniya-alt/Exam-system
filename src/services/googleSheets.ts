@@ -546,7 +546,7 @@ export async function syncDataToGoogleSheet(
 
   // 4. Teachers Sheet
   const teacherValues = [
-    ['Name', 'Mobile', 'PIN', 'AssignedClass', 'Role'],
+    ['Name', 'Mobile', 'PIN', 'Assigned Class', 'Role'],
     ...data.teachers.map((t) => [
       t.name,
       t.mobile,

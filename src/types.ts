@@ -62,6 +62,7 @@ export interface StudentExamResult {
   rank: number;
   totalStudentsInClass: number;
   status: 'PASSED' | 'FAILED' | 'COMPARTMENT';
+  isUpcoming: boolean;
   remarks: string;
 }
 
@@ -76,6 +77,7 @@ export interface ClassRankRow {
   percentage: number;
   grade: string;
   status: 'PASSED' | 'FAILED' | 'COMPARTMENT';
+  isUpcoming?: boolean;
 }
 
 export interface GoogleSheetsSyncState {

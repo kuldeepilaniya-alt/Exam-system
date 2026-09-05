@@ -4,8 +4,11 @@ import {
   Calendar,
   CheckCircle2,
   ChevronRight,
+  Clock,
+  Download,
   Printer,
   Search,
+  Share2,
   TrendingDown,
   TrendingUp,
   User,
@@ -14,6 +17,8 @@ import {
 import { Exam, MarkRecord, Student } from '../types';
 import { getStudentExamResult } from '../utils/rankCalculations';
 import { getDisplayClassName, normalizeClassName } from '../data/mockDatabase';
+import { downloadStudentMarksheetPDF } from '../utils/pdfGenerator';
+import { shareStudentMarksheetOnWhatsApp } from '../utils/whatsappShare';
 
 interface StudentPortalProps {
   students: Student[];
@@ -36,6 +41,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
   const [searchedRoll, setSearchedRoll] = useState<string>(initialRollNo || '');
   const [hasSearched, setHasSearched] = useState<boolean>(Boolean(initialRollNo));
   const [selectedExamId, setSelectedExamId] = useState<string>(initialExamId || '');
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false);
 
   // Update when initialRollNo or initialExamId changes from parent
   React.useEffect(() => {
@@ -117,6 +123,24 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!currentResult) return;
+    setIsGeneratingPdf(true);
+    try {
+      await downloadStudentMarksheetPDF(currentResult, allExamResults);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+      alert('Unable to generate PDF directly. Please use the Print button to Save as PDF.');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!currentResult) return;
+    shareStudentMarksheetOnWhatsApp(currentResult, student?.contactNumber);
   };
 
   return (
@@ -245,15 +269,42 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
               })}
             </div>
 
-            <button
-              type="button"
-              id="print-marksheet-btn"
-              onClick={handlePrint}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition"
-            >
-              <Printer className="h-3.5 w-3.5" />
-              <span>Print</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                id="download-marksheet-pdf-btn"
+                onClick={handleDownloadPDF}
+                disabled={isGeneratingPdf || !currentResult}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 text-xs font-bold shadow-xs active:scale-95 transition disabled:opacity-60 cursor-pointer"
+                title="Download 2-Page A4 Marksheet PDF"
+              >
+                <Download className={`h-3.5 w-3.5 ${isGeneratingPdf ? 'animate-bounce' : ''}`} />
+                <span>{isGeneratingPdf ? 'Generating PDF...' : 'Download PDF'}</span>
+              </button>
+
+              <button
+                type="button"
+                id="share-student-portal-whatsapp-btn"
+                onClick={handleShareWhatsApp}
+                disabled={!currentResult}
+                className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 text-xs font-bold shadow-xs active:scale-95 transition disabled:opacity-60 cursor-pointer"
+                title="Share Marksheet on WhatsApp"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                <span>Share on WhatsApp</span>
+              </button>
+
+              <button
+                type="button"
+                id="print-marksheet-btn"
+                onClick={handlePrint}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
+                title="Print 2-Page Marksheet"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>Print</span>
+              </button>
+            </div>
           </div>
 
           {/* Official Printable Mark Sheet Card */}
@@ -273,10 +324,18 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
                   Affiliated to Board of Secondary Education, Rajasthan (RBSE)
                 </p>
-                <div className="mt-3 inline-block rounded-full bg-emerald-100 text-emerald-800 px-4 py-1 text-[11px] font-black uppercase tracking-wider">
-                  STATEMENT OF MARKS — {currentResult.exam.examName.toUpperCase()} • SESSION 2026-27
+                <div
+                  className={`mt-3 inline-block rounded-full px-4 py-1 text-[11px] font-black uppercase tracking-wider ${
+                    currentResult.isUpcoming
+                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                      : 'bg-emerald-100 text-emerald-800'
+                  }`}
+                >
+                  {currentResult.isUpcoming
+                    ? `UPCOMING — ${currentResult.exam.examName.toUpperCase()} • SESSION 2026-27`
+                    : `STATEMENT OF MARKS — ${currentResult.exam.examName.toUpperCase()} • SESSION 2026-27`}
                 </div>   
-                </div>            
+              </div>            
               
 
               {/* Student Metadata Card */}
@@ -313,29 +372,46 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                 <div className="p-4 text-center">
                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Marks</div>
                   <div className="mt-1 text-2xl font-extrabold text-slate-900 sm:text-3xl font-mono">
-                    {currentResult.totalObtainedMarks} <span className="text-xs font-normal text-slate-400">/ {currentResult.totalMaxMarks}</span>
+                    {currentResult.isUpcoming ? (
+                      <span className="text-slate-400">- <span className="text-xs font-normal text-slate-400">/ {currentResult.totalMaxMarks}</span></span>
+                    ) : (
+                      <>
+                        {currentResult.totalObtainedMarks} <span className="text-xs font-normal text-slate-400">/ {currentResult.totalMaxMarks}</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div className="p-4 text-center">
                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Percentage</div>
                   <div className="mt-1 text-2xl font-extrabold text-emerald-600 sm:text-3xl font-mono">
-                    {currentResult.percentage}%
+                    {currentResult.isUpcoming ? <span className="text-slate-400">-</span> : `${currentResult.percentage}%`}
                   </div>
                 </div>
 
                 <div className="p-4 text-center">
                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Class Rank</div>
                   <div className="mt-1 flex items-center justify-center gap-1 text-2xl font-extrabold text-slate-900 sm:text-3xl">
-                    {currentResult.rank}
-                    <span className="text-xs font-normal text-slate-400">/ {currentResult.totalStudentsInClass}</span>
+                    {currentResult.isUpcoming ? (
+                      <span className="text-slate-400 text-lg font-bold">Upcoming</span>
+                    ) : (
+                      <>
+                        {currentResult.rank}
+                        <span className="text-xs font-normal text-slate-400">/ {currentResult.totalStudentsInClass}</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
                 <div className="p-4 text-center">
                   <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Result Status</div>
                   <div className="mt-1.5 flex items-center justify-center">
-                    {currentResult.status === 'PASSED' ? (
+                    {currentResult.isUpcoming ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 border border-amber-300 px-3.5 py-1 text-xs font-black text-amber-800 uppercase tracking-tight">
+                        <Clock className="h-3.5 w-3.5 text-amber-600" />
+                        UPCOMING
+                      </span>
+                    ) : currentResult.status === 'PASSED' ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3.5 py-1 text-xs font-black text-emerald-800 uppercase tracking-tight">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
                         PASSED
@@ -373,14 +449,16 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                             {sub.maxMarks}
                           </td>
                           <td className="py-3.5 px-4 text-center font-bold font-mono text-slate-900">
-                            {sub.obtainedMarks}
+                            {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : sub.obtainedMarks}
                           </td>
                           <td className="py-3.5 px-4 text-center text-xs font-mono text-slate-600">
-                            {sub.percentage}%
+                            {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : `${sub.percentage}%`}
                           </td>
                           
                           <td className="py-3.5 px-4 text-right">
-                            {sub.isPassing ? (
+                            {currentResult.isUpcoming ? (
+                              <span className="text-xs font-bold text-amber-700 uppercase tracking-tight">Upcoming</span>
+                            ) : sub.isPassing ? (
                               <span className="text-xs font-bold text-emerald-600 uppercase tracking-tight">Pass</span>
                             ) : (
                               <span className="text-xs font-bold text-rose-600 uppercase tracking-tight">Fail</span>
@@ -398,14 +476,18 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                           {currentResult.totalMaxMarks}
                         </td>
                         <td className="py-3.5 px-4 text-center font-mono font-extrabold text-blue-600">
-                          {currentResult.totalObtainedMarks}
+                          {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : currentResult.totalObtainedMarks}
                         </td>
                         <td className="py-3.5 px-4 text-center font-mono font-bold">
-                          {currentResult.percentage}%
+                          {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : `${currentResult.percentage}%`}
                         </td>
                         
                         <td className="py-3.5 px-4 text-right font-extrabold text-emerald-600">
-                          {currentResult.status}
+                          {currentResult.isUpcoming ? (
+                            <span className="text-amber-800 font-extrabold">Upcoming</span>
+                          ) : (
+                            currentResult.status
+                          )}
                         </td>
                       </tr>
                     </tfoot>
@@ -449,9 +531,12 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
             </div>
           )}
 
-          {/* Term-by-Term Examination Performance & Progression */}
+          {/* Term-by-Term Examination Performance & Progression (Page 2 in Print) */}
           {allExamResults.length > 0 && (
-            <div id="term-by-term-progression" className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm print:hidden">
+            <div
+              id="term-by-term-progression"
+              className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm print:border-slate-300 print:shadow-none print:break-before-page print:p-6 print:mt-0 print:block"
+            >
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
                 <div>
                   <div className="flex items-center gap-2">
@@ -465,16 +550,21 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                   </p>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-100 px-3 py-1.5 rounded-xl self-start sm:self-auto">
-                  <span>Evaluated Terms:</span>
+                  <span>Terms Tracked:</span>
                   <span className="font-bold text-slate-900 font-mono">{allExamResults.length}</span>
+                  {allExamResults.some((r) => r.isUpcoming) && (
+                    <span className="text-[10px] text-amber-700 bg-amber-100 border border-amber-300 font-bold px-1.5 py-0.5 rounded-md">
+                      {allExamResults.filter((r) => r.isUpcoming).length} Upcoming
+                    </span>
+                  )}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {allExamResults.map((res, index) => {
                   const isCurrent = activeExam?.examId === res.exam.examId;
-                  const prevRes = index > 0 ? allExamResults[index - 1] : null;
-                  const pctDiff = prevRes ? Math.round((res.percentage - prevRes.percentage) * 10) / 10 : null;
+                  const prevRes = index > 0 && !allExamResults[index - 1].isUpcoming ? allExamResults[index - 1] : null;
+                  const pctDiff = !res.isUpcoming && prevRes ? Math.round((res.percentage - prevRes.percentage) * 10) / 10 : null;
 
                   return (
                     <div
@@ -493,25 +583,49 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
 
                         <div className="my-3 space-y-2">
                           <div className="flex items-center">
-                            <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-800">
-                              <Award className="h-3 w-3 text-amber-500" />
-                              Rank {res.rank}
-                            </span>
+                            {res.isUpcoming ? (
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-800">
+                                <Clock className="h-3 w-3 text-amber-600" />
+                                Upcoming
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1 text-xs font-bold text-amber-800">
+                                <Award className="h-3 w-3 text-amber-500" />
+                                Rank {res.rank}
+                              </span>
+                            )}
                           </div>
                           <div className="flex items-baseline justify-between">
-                            <span className="text-2xl font-black text-slate-900 font-mono">
-                              {res.percentage}%
-                            </span>
-                            <span className="text-[11px] text-slate-500 font-mono">
-                              ({res.totalObtainedMarks}/{res.totalMaxMarks})
-                            </span>
+                            {res.isUpcoming ? (
+                              <>
+                                <span className="text-lg font-black text-amber-800 font-mono">
+                                  Upcoming
+                                </span>
+                                <span className="text-[11px] text-slate-500 font-mono">
+                                  (Max: {res.totalMaxMarks})
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span className="text-2xl font-black text-slate-900 font-mono">
+                                  {res.percentage}%
+                                </span>
+                                <span className="text-[11px] text-slate-500 font-mono">
+                                  ({res.totalObtainedMarks}/{res.totalMaxMarks})
+                                </span>
+                              </>
+                            )}
                           </div>                          
                         </div>
 
                         {/* Growth indicator */}
                         <div className="mb-3 flex items-center justify-between text-[11px]">
                           <span className="text-slate-500">Term Standing:</span>
-                          {pctDiff !== null ? (
+                          {res.isUpcoming ? (
+                            <span className="font-bold text-amber-700">
+                              Result Awaited
+                            </span>
+                          ) : pctDiff !== null ? (
                             pctDiff >= 0 ? (
                               <span className="font-bold text-emerald-600 flex items-center gap-0.5">
                                 <TrendingUp className="h-3 w-3" />
@@ -531,16 +645,24 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                         {/* Progress bar */}
                         <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
                           <div
-                            className="h-full rounded-full bg-emerald-600 transition-all duration-500"
-                            style={{ width: `${Math.min(100, res.percentage)}%` }}
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              res.isUpcoming ? 'bg-amber-400' : 'bg-emerald-600'
+                            }`}
+                            style={{ width: res.isUpcoming ? '0%' : `${Math.min(100, res.percentage)}%` }}
                           />
                         </div>
                       </div>
 
                       <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
-                          {res.status}
-                        </span>
+                        {res.isUpcoming ? (
+                          <span className="text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md">
+                            Upcoming
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+                            {res.status}
+                          </span>
+                        )}
                         <button
                           type="button"
                           id={`term-btn-${res.exam.examId}`}
@@ -549,7 +671,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                             const el = document.getElementById('official-marksheet-card');
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
                           }}
-                          className={`flex items-center gap-1 text-xs font-bold transition cursor-pointer ${
+                          className={`flex items-center gap-1 text-xs font-bold transition cursor-pointer print:hidden ${
                             isCurrent ? 'text-blue-700 font-black' : 'text-blue-600 hover:text-blue-800'
                           }`}
                         >

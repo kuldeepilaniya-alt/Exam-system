@@ -17,6 +17,43 @@ export function isPassingScore(obtained: number, maxMarks: number): boolean {
 }
 
 /**
+ * Determines if an exam is upcoming / result awaited:
+ * 1. If date of exam is in the future compared to today, OR
+ * 2. If all class marks entered for this exam are 0 (or no marks entered at all)
+ */
+export function isExamUpcoming(exam: Exam, marksRecords: MarkRecord[]): boolean {
+  if (exam.date) {
+    const examDate = new Date(exam.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (!isNaN(examDate.getTime())) {
+      examDate.setHours(0, 0, 0, 0);
+      if (examDate.getTime() > today.getTime()) {
+        return true;
+      }
+    }
+  }
+
+  // Filter marks for this specific exam
+  const examMarks = marksRecords.filter((m) => m.examId === exam.examId);
+  if (examMarks.length === 0) {
+    return true;
+  }
+
+  // Calculate sum of all marks recorded across all students/subjects in this exam
+  let totalMarks = 0;
+  for (const record of examMarks) {
+    if (record.marks) {
+      for (const val of Object.values(record.marks)) {
+        totalMarks += Number(val || 0);
+      }
+    }
+  }
+
+  return totalMarks === 0;
+}
+
+/**
  * Calculates class-wise ranks strictly following SOP Section 5:
  * Sorts by total descending, ties receive the same rank, next gets standard competition rank.
  */
@@ -162,8 +199,12 @@ export function getStudentExamResult(
     status = 'FAILED';
   }
 
+  const isUpcoming = isExamUpcoming(exam, marksRecords);
+
   let remarks = 'Outstanding Academic Performance!';
-  if (percentage >= 80) remarks = 'Excellent performance and commendable diligence!';
+  if (isUpcoming) {
+    remarks = 'Upcoming Examination. Results will be published after evaluation.';
+  } else if (percentage >= 80) remarks = 'Excellent performance and commendable diligence!';
   else if (percentage >= 65) remarks = 'Good progress, keep aspiring for higher excellence.';
   else if (percentage >= 50) remarks = 'Satisfactory performance. Regular revision is recommended.';
   else if (status === 'COMPARTMENT') remarks = 'Compartment in 1 subject. Special remedial classes advised.';
@@ -180,6 +221,7 @@ export function getStudentExamResult(
     rank: studentRankRow?.rank ?? 1,
     totalStudentsInClass: classRankList.length,
     status,
+    isUpcoming,
     remarks: markRecord?.remarks || remarks,
   };
 }

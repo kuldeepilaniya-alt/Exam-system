@@ -11,14 +11,17 @@ import {
   Download,
   Edit3,
   ExternalLink,
+  FileText,
   GraduationCap,
   Layers,
   Link,
+  MessageSquare,
   Plus,
   Printer,
   RefreshCw,
   Search,
   Settings,
+  Share2,
   Sheet,
   Sparkles,
   Trash2,
@@ -36,7 +39,12 @@ import {
   Student,
   TeacherUser,
 } from '../types';
-import { calculateClassRanks } from '../utils/rankCalculations';
+import { calculateClassRanks, getStudentExamResult } from '../utils/rankCalculations';
+import { downloadMeritListPDF, downloadStudentMarksheetPDF } from '../utils/pdfGenerator';
+import {
+  shareClassMeritListOnWhatsApp,
+  shareStudentMarksheetOnWhatsApp,
+} from '../utils/whatsappShare';
 import { ConfirmationModal } from './ConfirmationModal';
 import {
   buildSpreadsheetUrl,
@@ -50,6 +58,7 @@ import {
   DEFAULT_SUBJECT_CONFIGS,
   generateAllSampleMarks,
   ORDERED_CLASSES,
+  normalizeClassName,
   saveLinkedSheetId,
   saveLinkedSheetUrl,
   getStoredLinkedSheetUrl,
@@ -131,6 +140,23 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       onUpdateTeachers(updatedTeachers);
     } else {
       saveTeachers(updatedTeachers);
+    }
+
+    // Auto-sync teachers to Google Apps Script Web App if configured
+    const activeUrl = webAppUrl || googleSheetsState.spreadsheetUrl || getStoredWebAppUrl();
+    if (activeUrl && activeUrl.startsWith('https://script.google.com/')) {
+      fetch(activeUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          students,
+          exams,
+          marks,
+          subjectsMap,
+          teachers: updatedTeachers,
+        }),
+      }).catch((e) => console.warn('Teacher background sync note:', e));
     }
   };
 
@@ -470,7 +496,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       'Total Obtained',
       'Total Maximum',
       'Percentage',
-      'Grade',
       'Status',
     ];
 
@@ -484,7 +509,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       r.totalObtained,
       r.totalMax,
       `${r.percentage}%`,
-      r.grade,
       r.status,
     ]);
 
@@ -500,6 +524,97 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const [isGeneratingMeritPdf, setIsGeneratingMeritPdf] = useState(false);
+  const [downloadingMarksheetRoll, setDownloadingMarksheetRoll] = useState<string | null>(null);
+
+  const handleDownloadMeritPDF = async () => {
+    if (!activeExam || rankedStudents.length === 0) return;
+    setIsGeneratingMeritPdf(true);
+    try {
+      await downloadMeritListPDF(
+        activeExam.examName,
+        selectedClass,
+        rankedStudents,
+        subjects,
+        summaryMetrics
+      );
+    } catch (err) {
+      console.error('Error downloading merit list PDF:', err);
+      alert('Failed to generate Merit List PDF. You can also use Print / PDF to save as PDF.');
+    } finally {
+      setIsGeneratingMeritPdf(false);
+    }
+  };
+
+  const handleDownloadSingleStudentMarksheet = async (rollNo: string) => {
+    if (!activeExam) return;
+    const applicableExams = exams.filter(
+      (e) => normalizeClassName(e.className) === normalizeClassName(selectedClass)
+    );
+    const currentResult = getStudentExamResult(
+      rollNo,
+      activeExam.examId,
+      students,
+      exams,
+      marks,
+      subjectsMap
+    );
+    if (!currentResult) {
+      alert('Could not compute marksheet for this student.');
+      return;
+    }
+    const allExamResults = applicableExams
+      .map((e) =>
+        getStudentExamResult(
+          rollNo,
+          e.examId,
+          students,
+          exams,
+          marks,
+          subjectsMap
+        )
+      )
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    setDownloadingMarksheetRoll(rollNo);
+    try {
+      await downloadStudentMarksheetPDF(currentResult, allExamResults);
+    } catch (err) {
+      console.error('Failed to download student marksheet PDF:', err);
+      alert('Failed to generate student marksheet PDF.');
+    } finally {
+      setDownloadingMarksheetRoll(null);
+    }
+  };
+
+  const handleShareMeritListWhatsApp = () => {
+    if (!activeExam || rankedStudents.length === 0) return;
+    shareClassMeritListOnWhatsApp(
+      activeExam.examName,
+      selectedClass,
+      rankedStudents,
+      summaryMetrics
+    );
+  };
+
+  const handleShareSingleStudentMarksheetWhatsApp = (rollNo: string) => {
+    if (!activeExam) return;
+    const currentResult = getStudentExamResult(
+      rollNo,
+      activeExam.examId,
+      students,
+      exams,
+      marks,
+      subjectsMap
+    );
+    if (!currentResult) {
+      alert('Could not compute marksheet for this student.');
+      return;
+    }
+    const studentObj = students.find((s) => s.rollNo.toString().trim() === rollNo.toString().trim());
+    shareStudentMarksheetOnWhatsApp(currentResult, studentObj?.contactNumber);
   };
 
   // Auto Sync: Get student data from sheet, create complete sample marks, and auto-sync
@@ -563,7 +678,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             exams: currentExams,
             marks: freshMarks,
             subjectsMap,
-            teachers: [activeTeacher],
+            teachers: teachers,
           }
         );
 
@@ -715,7 +830,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             exams,
             marks: updatedMarks,
             subjectsMap,
-            teachers: [activeTeacher],
+            teachers: teachers,
           }
         );
         setSyncStatusMessage(
@@ -765,6 +880,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         exams,
         marks,
         subjectsMap,
+        teachers,
       };
 
       await fetch(activeUrl, {
@@ -775,6 +891,19 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         },
         body: JSON.stringify(payload)
       });
+
+      // Also sync directly via Google Sheets API if accessToken exists
+      if (googleAccessToken && googleSheetsState.spreadsheetId) {
+        try {
+          await syncDataToGoogleSheet(
+            googleAccessToken,
+            googleSheetsState.spreadsheetId,
+            payload
+          );
+        } catch (apiErr) {
+          console.warn('Direct Google Sheet API sync note:', apiErr);
+        }
+      }
       
       const timestamp = new Date().toLocaleTimeString();
       onUpdateGoogleSheetsState({
@@ -785,7 +914,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         error: null,
       });
 
-      setSyncStatusMessage('✓ Successfully saved all database records to Google Sheets via Webhook!');
+      setSyncStatusMessage('✓ Successfully saved all database records (Students, Exams, Marks, Subjects & Teachers) to Google Sheets!');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Webhook synchronization failed.';
       setSyncStatusMessage(`Sync error: ${msg}`);
@@ -820,55 +949,6 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            
-
-            {/* Toggle Fill Marks by Subject */}
-            <button
-              type="button"
-              id="fill-marks-by-subject-btn"
-              onClick={() => setDashboardViewMode(dashboardViewMode === 'subject-entry' ? 'merit' : 'subject-entry')}
-              className={`flex items-center gap-1.5 rounded-xl border px-3.5 py-2.5 text-xs font-bold transition shadow-xs ${
-                dashboardViewMode === 'subject-entry'
-                  ? 'bg-blue-600 text-white border-blue-500 ring-2 ring-blue-400'
-                  : 'bg-white/10 text-white border-white/20 hover:bg-white/20'
-              }`}
-            >
-              <Edit3 className="h-4 w-4 text-white" />
-              <span>{dashboardViewMode === 'subject-entry' ? 'View Class Merit List' : 'Fill Marks by Subject'}</span>
-            </button>
-
-            {onOpenAddSubject && (
-              <button
-                type="button"
-                id="top-add-subject-btn"
-                onClick={onOpenAddSubject}
-                className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-white/20 transition"
-              >
-                <BookOpen className="h-4 w-4 text-purple-300" />
-                <span>Add Subject</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              id="add-student-btn"
-              onClick={() => setIsAddStudentModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-white/20 transition"
-            >
-              <UserPlus className="h-4 w-4 text-white" />
-              <span>Add Student</span>
-            </button>
-
-            <button
-              type="button"
-              id="add-exam-btn"
-              onClick={() => setIsAddExamModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-white/20 transition"
-            >
-              <Plus className="h-4 w-4 text-white" />
-              <span>New Exam</span>
-            </button>
-
             <button
               type="button"
               id="google-settings-top-btn"
@@ -1018,6 +1098,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           activeTeacher={activeTeacher}
           onUpdateTeachers={handleUpdateTeachersList}
           onSaveToDatabase={handleInitiateGoogleSync}
+          isSyncing={isSyncing}
         />
       )}
 
@@ -1025,6 +1106,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         <StudentsManager
           students={students}
           marks={marks}
+          exams={exams}
+          subjectsMap={subjectsMap}
           onUpdateStudents={handleUpdateStudentsList}
           onViewStudentResult={onViewStudentResult}
           onSaveToDatabase={handleInitiateGoogleSync}
@@ -1136,7 +1219,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             id="export-csv-btn"
             onClick={handleExportCSV}
             title="Download CSV"
-            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition"
+            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
           >
             <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">CSV</span>
@@ -1144,13 +1227,37 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
           <button
             type="button"
+            id="download-merit-list-pdf-btn"
+            onClick={handleDownloadMeritPDF}
+            disabled={isGeneratingMeritPdf || rankedStudents.length === 0}
+            title="Download Class Merit List PDF Document"
+            className="flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 text-xs font-bold shadow-xs active:scale-95 transition disabled:opacity-60 cursor-pointer"
+          >
+            <Download className={`h-3.5 w-3.5 ${isGeneratingMeritPdf ? 'animate-bounce' : ''}`} />
+            <span className="hidden sm:inline">{isGeneratingMeritPdf ? 'Generating PDF...' : 'Download PDF'}</span>
+          </button>
+
+          <button
+            type="button"
+            id="share-merit-list-whatsapp-btn"
+            onClick={handleShareMeritListWhatsApp}
+            disabled={rankedStudents.length === 0}
+            title="Share Class Rank & Merit List PDF Summary on WhatsApp"
+            className="flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 text-xs font-bold shadow-xs active:scale-95 transition disabled:opacity-60 cursor-pointer"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Share on WhatsApp</span>
+          </button>
+
+          <button
+            type="button"
             id="print-merit-list-btn"
             onClick={() => window.print()}
             title="Print or Save as PDF"
-            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition"
+            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition cursor-pointer"
           >
             <Printer className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Print / PDF</span>
+            <span className="hidden sm:inline">Print</span>
           </button>
         </div>
       </div>
@@ -1302,7 +1409,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 className="flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-xs font-black text-slate-950 shadow-md active:scale-95 transition"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                <span>Submit &amp; Update &ldquo;{activeSubject}&rdquo; Marks</span>
+                <span>Update &ldquo;{activeSubject}&rdquo; Marks</span>
               </button>
             </div>
 
@@ -1493,20 +1600,20 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={handleNextSubject}
-                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
-              >
-                Next Subject →
-              </button>
-              <button
-                type="button"
                 onClick={handleSubmitSubjectMarks}
                 id="submit-subject-marks-bottom-btn"
                 className="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-6 py-2.5 text-xs font-extrabold text-white shadow-md active:scale-95 transition"
               >
                 <CheckCircle2 className="h-4 w-4" />
-                <span>Submit &amp; Update &ldquo;{activeSubject}&rdquo; Marks</span>
+                <span>Update &ldquo;{activeSubject}&rdquo; Marks</span>
               </button>
+              <button
+                type="button"
+                onClick={handleNextSubject}
+                className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 transition"
+              >
+                Next Subject →
+              </button>              
             </div>
           </div>
         </div>
@@ -1652,15 +1759,37 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
+                            id={`download-student-marksheet-${row.rollNo}`}
+                            onClick={() => handleDownloadSingleStudentMarksheet(row.rollNo)}
+                            disabled={downloadingMarksheetRoll === row.rollNo}
+                            title="Download 2-Page A4 Marksheet PDF for this student"
+                            className="flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50/70 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100 transition disabled:opacity-50 cursor-pointer"
+                          >
+                            <FileText className={`h-3 w-3 ${downloadingMarksheetRoll === row.rollNo ? 'animate-bounce' : ''}`} />
+                            <span className="hidden md:inline">{downloadingMarksheetRoll === row.rollNo ? 'PDF...' : 'Marksheet'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            id={`share-student-whatsapp-${row.rollNo}`}
+                            onClick={() => handleShareSingleStudentMarksheetWhatsApp(row.rollNo)}
+                            title="Share Marksheet on WhatsApp (to student's mobile number)"
+                            className="flex items-center gap-1 rounded-xl border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition cursor-pointer"
+                          >
+                            <MessageSquare className="h-3 w-3 text-emerald-600" />
+                            <span className="hidden md:inline">WhatsApp</span>
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => handleOpenEditMarks(row)}
                             title="Edit marks for this student"
-                            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+                            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                           >
                             <Edit3 className="h-3 w-3 text-slate-500" />
                             <span>Edit</span>
                           </button>
-                          
-                          </div>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -1695,8 +1824,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-500 max-w-xl mt-0.5">
-                Maintains 5 connected sheets (<b>Students</b>, <b>Exams</b>, <b>Marks</b>, <b>Subjects</b>, <b>Teachers</b>) directly inside your Google Drive. Allows seamless examination &amp; marks persistence.
-              </p>
+                Maintains 5 sheets (<b>Students</b>, <b>Exams</b>, <b>Marks</b>, <b>Subjects</b>, <b>Teachers</b>) directly your Google Sheets. </p>
             </div>
           </div>
 

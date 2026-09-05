@@ -4,10 +4,11 @@ import {
   Edit2,
   Eye,
   EyeOff,
+  FileSpreadsheet,
   Key,
-  Mail,
   Phone,
   Plus,
+  RefreshCw,
   Shield,
   ShieldCheck,
   Trash2,
@@ -26,6 +27,7 @@ interface TeachersManagerProps {
   activeTeacher: TeacherUser;
   onUpdateTeachers: (teachers: TeacherUser[]) => void;
   onSaveToDatabase?: () => void;
+  isSyncing?: boolean;
 }
 
 export const TeachersManager: React.FC<TeachersManagerProps> = ({
@@ -33,6 +35,7 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
   activeTeacher,
   onUpdateTeachers,
   onSaveToDatabase,
+  isSyncing = false,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('ALL');
@@ -188,9 +191,12 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
               <button
                 type="button"
                 onClick={onSaveToDatabase}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+                disabled={isSyncing}
+                id="sync-teachers-sheet-btn"
+                className="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-black text-white shadow-sm active:scale-95 transition disabled:opacity-60"
               >
-                <span>Save to Database</span>
+                <FileSpreadsheet className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{isSyncing ? 'Syncing to Sheets...' : 'Save & Sync to Google Sheets'}</span>
               </button>
             )}
             <button

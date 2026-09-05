@@ -3,6 +3,7 @@ import {
   Download,
   Edit2,
   ExternalLink,
+  FileText,
   GraduationCap,
   Phone,
   Plus,
@@ -15,13 +16,17 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { MarkRecord, Student } from '../types';
-import { ORDERED_CLASSES } from '../data/mockDatabase';
+import { Exam, MarkRecord, Student } from '../types';
+import { ORDERED_CLASSES, normalizeClassName } from '../data/mockDatabase';
+import { getStudentExamResult } from '../utils/rankCalculations';
+import { downloadStudentMarksheetPDF } from '../utils/pdfGenerator';
 import { ConfirmationModal } from './ConfirmationModal';
 
 interface StudentsManagerProps {
   students: Student[];
   marks: MarkRecord[];
+  exams?: Exam[];
+  subjectsMap?: { [className: string]: string[] };
   onUpdateStudents: (students: Student[]) => void;
   onDeleteStudentMarks?: (examId: string, rollNo: string) => void;
   onViewStudentResult?: (rollNo: string, examId: string) => void;
@@ -32,6 +37,8 @@ interface StudentsManagerProps {
 export const StudentsManager: React.FC<StudentsManagerProps> = ({
   students,
   marks,
+  exams = [],
+  subjectsMap = {},
   onUpdateStudents,
   onViewStudentResult,
   onSaveToDatabase,
@@ -53,6 +60,61 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
   const [fatherName, setFatherName] = useState('');
   const [contactNumber, setContactNumber] = useState('');
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
+  const [downloadingRoll, setDownloadingRoll] = useState<string | null>(null);
+
+  const handleDownloadStudentMarksheet = async (student: Student) => {
+    if (!exams || exams.length === 0) {
+      alert('No examination records available to generate marksheet.');
+      return;
+    }
+
+    const applicableExams = exams.filter(
+      (e) => normalizeClassName(e.className) === normalizeClassName(student.className)
+    );
+
+    if (applicableExams.length === 0) {
+      alert(`No examination terms found for Class ${student.className}.`);
+      return;
+    }
+
+    const targetExam = applicableExams.find((e) => e.examId === activeExamId) || applicableExams[0];
+    const currentResult = getStudentExamResult(
+      student.rollNo,
+      targetExam.examId,
+      students,
+      exams,
+      marks,
+      subjectsMap
+    );
+
+    if (!currentResult) {
+      alert(`Could not calculate marksheet for ${student.name} (Roll #${student.rollNo}). Ensure marks are entered.`);
+      return;
+    }
+
+    const allExamResults = applicableExams
+      .map((e) =>
+        getStudentExamResult(
+          student.rollNo,
+          e.examId,
+          students,
+          exams,
+          marks,
+          subjectsMap
+        )
+      )
+      .filter((res): res is NonNullable<typeof res> => res !== null);
+
+    setDownloadingRoll(student.rollNo);
+    try {
+      await downloadStudentMarksheetPDF(currentResult, allExamResults);
+    } catch (err) {
+      console.error('Marksheet generation error:', err);
+      alert('Failed to generate 2-page PDF marksheet.');
+    } finally {
+      setDownloadingRoll(null);
+    }
+  };
 
   const handleOpenAddModal = () => {
     // Suggest next roll number
@@ -441,6 +503,17 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
                       {/* Actions */}
                       <td className="py-3.5 px-5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadStudentMarksheet(s)}
+                            disabled={downloadingRoll === s.rollNo}
+                            title="Download 2-Page A4 Marksheet PDF"
+                            className="flex items-center gap-1 rounded-xl border border-blue-200 bg-blue-50/80 px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition disabled:opacity-50 cursor-pointer"
+                          >
+                            <FileText className={`h-3 w-3 ${downloadingRoll === s.rollNo ? 'animate-bounce' : ''}`} />
+                            <span className="hidden md:inline">{downloadingRoll === s.rollNo ? 'PDF...' : 'Marksheet'}</span>
+                          </button>
+
                           {onViewStudentResult && (
                             <button
                               type="button"
