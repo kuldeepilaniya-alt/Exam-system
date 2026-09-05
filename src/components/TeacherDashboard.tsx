@@ -1879,35 +1879,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              id="google-settings-card-btn"
-              onClick={() => setIsSettingsModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 hover:border-slate-300 transition"
-              title="Configure Google Apps Script & Sheet Settings"
-            >
-              <Settings className="h-4 w-4 text-slate-600" />
-              <span>Settings</span>
-            </button>
-
-            {linkedSheetUrl && (
-              <a
-                href={linkedSheetUrl.startsWith('http') ? linkedSheetUrl : buildSpreadsheetUrl(linkedSheetUrl)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition"
-              >
-                <span>Open Sheet</span>
-                <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
-              </a>
-            )}
-
-            <button
-              type="button"
               id="google-sync-card-btn"
               onClick={handleInitiateGoogleSync}
               className="flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition"
             >
-              <RefreshCw className="h-4 w-4" />
-              <span>Save Data to Database</span>
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Final Save and Submit Data</span>
             </button>
           </div>
         </div>
