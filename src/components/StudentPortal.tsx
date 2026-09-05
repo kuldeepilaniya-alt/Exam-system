@@ -596,7 +596,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                       </span>
                     </div>
                     <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      Principal (Attestation Seal)
+                      Principal
                     </div>
                   </div>
                 </div>
@@ -885,7 +885,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                   Term Progression Insights &amp; Advice
                 </div>
                 <p className="mt-1 text-xs font-semibold text-slate-700 leading-relaxed">
-                  Student has appeared in {evaluatedCount} term examination(s). Maintain continuous revision for board examination preparation.
+                  Student has appeared in {evaluatedCount} term examination(s).
                 </p>
               </div>
 
