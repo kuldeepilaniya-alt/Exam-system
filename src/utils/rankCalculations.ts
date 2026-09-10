@@ -97,6 +97,20 @@ export function calculateClassRanks(
       status = 'FAILED';
     }
 
+    const isUpcoming = isExamUpcoming(exam, marksRecords);
+    
+    let defaultRemarks = '';
+    if (isUpcoming) {
+      defaultRemarks = 'Upcoming Examination. Results will be published after evaluation.';
+    } else if (percentage >= 90) defaultRemarks = 'Outstanding Performance';
+    else if (percentage >= 80) defaultRemarks = 'Very Good Performance';
+    else if (percentage >= 70) defaultRemarks = 'Good Performance';
+    else if (percentage >= 60) defaultRemarks = 'Satisfactory Performance';
+    else if (percentage >= 50) defaultRemarks = 'Needs Improvement';
+    else defaultRemarks = 'Critical / Below Average';
+    
+    const remarks = markRecord?.remarks || defaultRemarks;
+
     return {
       rollNo: student.rollNo,
       name: student.name,
@@ -107,6 +121,8 @@ export function calculateClassRanks(
       percentage,
       grade,
       status,
+      isUpcoming,
+      remarks,
     };
   });
 
@@ -201,14 +217,15 @@ export function getStudentExamResult(
 
   const isUpcoming = isExamUpcoming(exam, marksRecords);
 
-  let remarks = 'Outstanding Academic Performance!';
+  let remarks = '';
   if (isUpcoming) {
     remarks = 'Upcoming Examination. Results will be published after evaluation.';
-  } else if (percentage >= 80) remarks = 'Excellent performance and commendable diligence!';
-  else if (percentage >= 65) remarks = 'Good progress, keep aspiring for higher excellence.';
-  else if (percentage >= 50) remarks = 'Satisfactory performance. Regular revision is recommended.';
-  else if (status === 'COMPARTMENT') remarks = 'Compartment in 1 subject. Special remedial classes advised.';
-  else remarks = 'Needs substantial improvement and dedicated academic focus.';
+  } else if (percentage >= 90) remarks = 'Outstanding Performance';
+  else if (percentage >= 80) remarks = 'Very Good Performance';
+  else if (percentage >= 70) remarks = 'Good Performance';
+  else if (percentage >= 60) remarks = 'Satisfactory Performance';
+  else if (percentage >= 50) remarks = 'Needs Improvement';
+  else remarks = 'Critical / Below Average';
 
   return {
     student,

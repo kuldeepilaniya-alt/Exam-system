@@ -78,6 +78,7 @@ export interface ClassRankRow {
   grade: string;
   status: 'PASSED' | 'FAILED' | 'COMPARTMENT';
   isUpcoming?: boolean;
+  remarks?: string;
 }
 
 export interface GoogleSheetsSyncState {
