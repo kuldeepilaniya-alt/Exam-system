@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { KeyRound, LogIn, Phone, ShieldCheck, UserCheck, X } from 'lucide-react';
+import { KeyRound, LogIn, Phone, ShieldCheck, X } from 'lucide-react';
 import { TeacherUser } from '../types';
 import { googleSignIn } from '../services/firebaseAuth';
 
@@ -45,14 +45,6 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
     }
 
     onLoginSuccess(matchedTeacher);
-    onClose();
-  };
-
-  const handleQuickSelect = (teacher: TeacherUser) => {
-    setMobileInput(teacher.mobile);
-    setPinInput(teacher.pin);
-    setErrorMessage('');
-    onLoginSuccess(teacher);
     onClose();
   };
 
@@ -174,35 +166,6 @@ export const TeacherLoginModal: React.FC<TeacherLoginModalProps> = ({
             Sign In to Teacher Dashboard
           </button>
         </form>
-
-        {/* Quick Demo Credentials */}
-        <div className="mt-5 pt-3.5 border-t border-slate-100">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-1.5">
-            <UserCheck className="h-3.5 w-3.5 text-blue-600" />
-            Quick Demo Accounts (Click to login):
-          </p>
-          <div className="space-y-1.5">
-            {teachers.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                id={`demo-teacher-${t.id}`}
-                onClick={() => handleQuickSelect(t)}
-                className="w-full flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs hover:bg-slate-100 transition"
-              >
-                <div>
-                  <span className="font-bold text-slate-800">{t.name}</span>
-                  <span className="ml-1.5 text-[10px] font-medium text-slate-400">({t.role})</span>
-                </div>
-                <div className="text-[11px] font-mono text-blue-600 font-bold">
-                  PIN: {t.pin}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        
       </div>
     </div>
   );
