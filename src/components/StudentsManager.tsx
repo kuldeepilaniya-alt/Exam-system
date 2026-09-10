@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  CheckCircle2,
   Download,
   Edit2,
   ExternalLink,
@@ -31,6 +32,9 @@ interface StudentsManagerProps {
   onDeleteStudentMarks?: (examId: string, rollNo: string) => void;
   onViewStudentResult?: (rollNo: string, examId: string) => void;
   onSaveToDatabase?: () => void;
+  hasUnsavedChanges?: boolean;
+  isSyncing?: boolean;
+  lastUpdatedTime?: string | null;
   activeExamId?: string;
 }
 
@@ -42,6 +46,9 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
   onUpdateStudents,
   onViewStudentResult,
   onSaveToDatabase,
+  hasUnsavedChanges = false,
+  isSyncing = false,
+  lastUpdatedTime = null,
   activeExamId,
 }) => {
   const [selectedClass, setSelectedClass] = useState<string>('ALL');
@@ -319,10 +326,30 @@ export const StudentsManager: React.FC<StudentsManagerProps> = ({
             {onSaveToDatabase && (
               <button
                 type="button"
+                id="sync-students-database-btn"
                 onClick={onSaveToDatabase}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+                disabled={isSyncing}
+                title={hasUnsavedChanges ? 'Changes detected in students. Click to save to Google Sheet database.' : (lastUpdatedTime ? `Students up to date. Last saved at ${lastUpdatedTime}` : 'Save students to database')}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition shadow-sm active:scale-95 disabled:opacity-60 cursor-pointer ${
+                  hasUnsavedChanges
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-200 animate-pulse'
+                    : 'border border-slate-200 bg-slate-50 hover:bg-white text-slate-700 shadow-2xs'
+                }`}
               >
-                <span>Save to Database</span>
+                {hasUnsavedChanges ? (
+                  <>
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    <span>{isSyncing ? 'Saving Students...' : 'Save to Database (Update Needed)'}</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>{isSyncing ? 'Saving...' : lastUpdatedTime ? `Saved (${lastUpdatedTime})` : 'Save to Database'}</span>
+                  </>
+                )}
               </button>
             )}
 

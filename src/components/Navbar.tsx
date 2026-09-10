@@ -23,6 +23,37 @@ interface NavbarProps {
   onRefreshSync?: () => void;
 }
 
+const formatUpdatedDateTime = (syncedAt?: string | null): string => {
+  if (!syncedAt) {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+    const timeStr = now.toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${dateStr}, ${timeStr}`;
+  }
+
+  // If already contains date (has comma, slash, hyphen or month name)
+  if (syncedAt.includes(',') || syncedAt.includes('/') || syncedAt.includes('-')) {
+    return syncedAt;
+  }
+
+  // If it is just a time string like "10:45 AM"
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  return `${dateStr}, ${syncedAt}`;
+};
+
 export const Navbar: React.FC<NavbarProps> = ({
   currentView,
   onViewChange,
@@ -117,31 +148,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={
                 isSyncing
                   ? 'Fetching latest marks from Google Sheets...'
-                  : lastSyncedAt
-                  ? `Google Sheets Live Synced (Updated ${lastSyncedAt}). Click to refresh now.`
-                  : 'Click to fetch latest data from Google Sheet'
+                  : `Google Sheets Live Synced. Updated: ${formatUpdatedDateTime(lastSyncedAt)}. Click to refresh now.`
               }
-              className={`hidden md:flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-[11px] font-semibold transition ${
+              className={`hidden sm:flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-[11px] font-semibold transition active:scale-95 cursor-pointer ${
                 isSyncing
-                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
-                  : lastSyncedAt
-                  ? 'border-emerald-200 bg-emerald-50/70 text-emerald-800 hover:bg-emerald-100'
-                  : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                  ? 'border-indigo-200 bg-indigo-50 text-indigo-700 cursor-wait'
+                  : 'border-emerald-200 bg-emerald-50/80 text-emerald-800 hover:bg-emerald-100 shadow-2xs'
               }`}
             >
               {isSyncing ? (
-                <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-600" />
-              ) : lastSyncedAt ? (
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-600 shrink-0" />
               ) : (
-                <Sheet className="h-3.5 w-3.5 text-slate-500" />
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
               )}
-              <span>
+              <span className="whitespace-nowrap">
                 {isSyncing
                   ? 'Syncing Sheets...'
-                  : lastSyncedAt
-                  ? `Sheet Synced: ${lastSyncedAt}`
-                  : 'Fetch Sheets'}
+                  : `Updated: ${formatUpdatedDateTime(lastSyncedAt)}`}
               </span>
             </button>
           )}

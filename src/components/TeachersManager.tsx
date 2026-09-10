@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   Check,
+  CheckCircle2,
   Edit2,
   Eye,
   EyeOff,
@@ -27,7 +28,9 @@ interface TeachersManagerProps {
   activeTeacher: TeacherUser;
   onUpdateTeachers: (teachers: TeacherUser[]) => void;
   onSaveToDatabase?: () => void;
+  hasUnsavedChanges?: boolean;
   isSyncing?: boolean;
+  lastUpdatedTime?: string | null;
 }
 
 export const TeachersManager: React.FC<TeachersManagerProps> = ({
@@ -35,7 +38,9 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
   activeTeacher,
   onUpdateTeachers,
   onSaveToDatabase,
+  hasUnsavedChanges = false,
   isSyncing = false,
+  lastUpdatedTime = null,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string>('ALL');
@@ -193,10 +198,28 @@ export const TeachersManager: React.FC<TeachersManagerProps> = ({
                 onClick={onSaveToDatabase}
                 disabled={isSyncing}
                 id="sync-teachers-sheet-btn"
-                className="flex items-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-black text-white shadow-sm active:scale-95 transition disabled:opacity-60"
+                title={hasUnsavedChanges ? 'Changes detected in teachers. Click to save to Google Sheet database.' : (lastUpdatedTime ? `Teachers up to date. Last saved at ${lastUpdatedTime}` : 'Save teachers to database')}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black transition shadow-sm active:scale-95 disabled:opacity-60 cursor-pointer ${
+                  hasUnsavedChanges
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-200 animate-pulse'
+                    : 'border border-slate-200 bg-slate-50 hover:bg-white text-slate-700 shadow-2xs'
+                }`}
               >
-                <FileSpreadsheet className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>{isSyncing ? 'Syncing to Sheets...' : 'Save & Sync to Google Sheets'}</span>
+                {hasUnsavedChanges ? (
+                  <>
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    <FileSpreadsheet className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                    <span>{isSyncing ? 'Saving Teachers...' : 'Save to Database (Update Needed)'}</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    <span>{isSyncing ? 'Saving...' : lastUpdatedTime ? `Saved (${lastUpdatedTime})` : 'Save to Database'}</span>
+                  </>
+                )}
               </button>
             )}
             <button

@@ -11,6 +11,7 @@ export const SCHOOL_INFO = {
 
 // Official Classes per Google Sheets database
 export const ORDERED_CLASSES = [
+  '5A',
   '8A',
   '10A',
   '12A',
@@ -21,6 +22,7 @@ export const ORDERED_CLASSES = [
 export function normalizeClassName(className: string): string {
   if (!className) return '10A';
   const c = className.trim().toLowerCase();
+  if (c === '5a' || c === '5' || c.includes('class 5') || c.includes('class5')) return '5A';
   if (c === '10a' || c === '10' || c.includes('class 10') || c.includes('class10')) return '10A';
   if (c === '8a' || c === '8' || c.includes('class 8') || c.includes('class8')) return '8A';
   if (c === '12a' || c.includes('12a') || (c.includes('12') && c.includes('sci'))) return '12A';
@@ -31,6 +33,7 @@ export function normalizeClassName(className: string): string {
 
 export function getDisplayClassName(className: string): string {
   const norm = normalizeClassName(className);
+  if (norm === '5A') return 'Class 5 (5A)';
   if (norm === '10A') return 'Class 10 (10A)';
   if (norm === '8A') return 'Class 8 (8A)';
   if (norm === '12A') return 'Class 12A (Science)';
@@ -39,14 +42,18 @@ export function getDisplayClassName(className: string): string {
   return className;
 }
 
-// Curriculum mapping per user's Google Sheet
+// Curriculum mapping per user's Google Sheet (Strict single canonical records)
 export const DEFAULT_SUBJECT_CONFIGS: ClassSubjectConfig[] = [
   {
-    className: '10A',
-    subjects: ['Hindi', 'English', 'Science', 'Maths', 'Social Science', 'Sanskrit'],
+    className: '5A',
+    subjects: ['Hindi', 'English', 'Maths', 'Environmental Studies'],
   },
   {
     className: '8A',
+    subjects: ['Hindi', 'English', 'Science', 'Maths', 'Social Science', 'Sanskrit'],
+  },
+  {
+    className: '10A',
     subjects: ['Hindi', 'English', 'Science', 'Maths', 'Social Science', 'Sanskrit'],
   },
   {
@@ -61,28 +68,96 @@ export const DEFAULT_SUBJECT_CONFIGS: ClassSubjectConfig[] = [
     className: '12C',
     subjects: ['Hindi', 'English', 'History', 'Geography', 'Hindi Literature'],
   },
-  // Backward compatibility aliases
-  {
-    className: 'Class 10',
-    subjects: ['Hindi', 'English', 'Science', 'Maths', 'Social Science', 'Sanskrit'],
-  },
-  {
-    className: 'Class 8',
-    subjects: ['Hindi', 'English', 'Science', 'Maths', 'Social Science', 'Sanskrit'],
-  },
-  {
-    className: 'Class 12A',
-    subjects: ['Hindi', 'English', 'Physic', 'Chemistry', 'Maths'],
-  },
-  {
-    className: 'Class 12B',
-    subjects: ['Hindi', 'English', 'Ag Chemistry', 'Ag Biology', 'Agriculture'],
-  },
-  {
-    className: 'Class 12C',
-    subjects: ['Hindi', 'English', 'History', 'Geography', 'Hindi Literature'],
-  },
 ];
+
+/**
+ * Normalizes and consolidates subjectsMap into single unique records per class.
+ * Strictly removes duplicate rows: Class 10, Class 8, Class 12A, Class 12B, Class 12C, Class 5
+ * Consolidating them into the canonical class records: 5A, 8A, 10A, 12A, 12B, 12C.
+ */
+export function normalizeSubjectsMap(
+  rawMap?: { [className: string]: string[] } | null
+): { [className: string]: string[] } {
+  const result: { [className: string]: string[] } = {};
+
+  const canonicalDefaults: { [className: string]: string[] } = {};
+  DEFAULT_SUBJECT_CONFIGS.forEach((c) => {
+    canonicalDefaults[c.className] = c.subjects;
+  });
+
+  const canonicalOrder = ['5A', '8A', '10A', '12A', '12B', '12C'];
+
+  // Explicit duplicate / removable row labels
+  const REMOVABLE_ALIASES = new Set([
+    'class 5',
+    'class 5a',
+    'class5',
+    'class5a',
+    'class 10',
+    'class 8',
+    'class 12a',
+    'class 12b',
+    'class 12c',
+    'class10',
+    'class8',
+    'class12a',
+    'class12b',
+    'class12c',
+  ]);
+
+  if (rawMap && typeof rawMap === 'object') {
+    // 1. First assign exact canonical records if present
+    canonicalOrder.forEach((cls) => {
+      if (rawMap[cls] && Array.isArray(rawMap[cls]) && rawMap[cls].length > 0) {
+        result[cls] = rawMap[cls];
+      }
+    });
+
+    // 2. For any other keys, fold them into canonical if missing, and omit duplicate alias keys
+    Object.entries(rawMap).forEach(([rawKey, list]) => {
+      const trimmed = rawKey.trim();
+      const lower = trimmed.toLowerCase();
+
+      if (REMOVABLE_ALIASES.has(lower)) {
+        // Target canonical key
+        const norm = normalizeClassName(trimmed);
+        if (!result[norm] && Array.isArray(list) && list.length > 0) {
+          result[norm] = list;
+        }
+        // Always discard the removable duplicate key
+        return;
+      }
+
+      const norm = normalizeClassName(trimmed);
+      if (canonicalOrder.includes(norm)) {
+        if (!result[norm] && Array.isArray(list) && list.length > 0) {
+          result[norm] = list;
+        }
+      } else {
+        // Custom classes beyond the 5
+        if (!result[trimmed] && Array.isArray(list) && list.length > 0) {
+          result[trimmed] = list;
+        }
+      }
+    });
+  }
+
+  // 3. Guarantee all 5 canonical single records exist
+  canonicalOrder.forEach((cls) => {
+    if (!result[cls] || result[cls].length === 0) {
+      result[cls] = canonicalDefaults[cls] || [
+        'Hindi',
+        'English',
+        'Science',
+        'Maths',
+        'Social Science',
+        'Sanskrit',
+      ];
+    }
+  });
+
+  return result;
+}
 
 // Official 90 Students from Google Sheets roster
 export const DEFAULT_STUDENTS: Student[] = OFFICIAL_STUDENTS;
@@ -171,6 +246,14 @@ export const DEFAULT_TEACHERS: TeacherUser[] = [
     assignedClass: '12C',
     role: 'Teacher',
   },
+  {
+    id: 'TCH-007',
+    name: 'Pooja Pareek',
+    mobile: '9829554433',
+    pin: '7788',
+    assignedClass: '5A',
+    role: 'Teacher',
+  },
 ];
 
 const subjectsMapDefaults: { [className: string]: string[] } = {};
@@ -214,6 +297,13 @@ export function getStoredStudents(): Student[] {
       saveStudents(DEFAULT_STUDENTS);
       return DEFAULT_STUDENTS;
     }
+    const has5A = parsed.some((s: Student) => normalizeClassName(s.className) === '5A');
+    if (!has5A) {
+      const students5A = DEFAULT_STUDENTS.filter((s) => normalizeClassName(s.className) === '5A');
+      const merged = [...parsed, ...students5A];
+      saveStudents(merged);
+      return merged;
+    }
     return parsed;
   } catch {
     return DEFAULT_STUDENTS;
@@ -234,6 +324,13 @@ export function getStoredExams(): Exam[] {
       return DEFAULT_EXAMS;
     }
     const normalized = parsed.map((e: Exam) => ({ ...e, academicYear: '2026-27' }));
+    const has5AExams = normalized.some((e: Exam) => normalizeClassName(e.className) === '5A');
+    if (!has5AExams) {
+      const exams5A = DEFAULT_EXAMS.filter((e) => normalizeClassName(e.className) === '5A');
+      const merged = [...normalized, ...exams5A];
+      saveExams(merged);
+      return merged;
+    }
     return normalized;
   } catch {
     return DEFAULT_EXAMS;
@@ -253,6 +350,13 @@ export function getStoredMarks(): MarkRecord[] {
       saveMarks(DEFAULT_MARKS);
       return DEFAULT_MARKS;
     }
+    const has5AMarks = parsed.some((m: MarkRecord) => m.examId.startsWith('5A-'));
+    if (!has5AMarks) {
+      const marks5A = DEFAULT_MARKS.filter((m) => m.examId.startsWith('5A-'));
+      const merged = [...parsed, ...marks5A];
+      saveMarks(merged);
+      return merged;
+    }
     return parsed;
   } catch {
     return DEFAULT_MARKS;
@@ -267,7 +371,11 @@ export function getStoredSubjectsMap(): { [className: string]: string[] } {
   try {
     const data = localStorage.getItem(STORAGE_KEYS.SUBJECTS);
     if (data) {
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      const normalized = normalizeSubjectsMap(parsed);
+      // Auto-cleanup stored duplicates in localStorage so stale copies are permanently fixed
+      localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(normalized));
+      return normalized;
     }
   } catch {
     // fallback
@@ -280,7 +388,8 @@ export function getStoredSubjectsMap(): { [className: string]: string[] } {
 }
 
 export function saveSubjectsMap(map: { [className: string]: string[] }): void {
-  localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(map));
+  const normalized = normalizeSubjectsMap(map);
+  localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(normalized));
 }
 
 export function getStoredTeachers(): TeacherUser[] {
@@ -291,6 +400,15 @@ export function getStoredTeachers(): TeacherUser[] {
     if (!Array.isArray(parsed) || !parsed.some((t: TeacherUser) => t.pin === '4321')) {
       saveTeachers(DEFAULT_TEACHERS);
       return DEFAULT_TEACHERS;
+    }
+    const has5ATeacher = parsed.some((t: TeacherUser) => t.assignedClass === '5A');
+    if (!has5ATeacher) {
+      const teacher5A = DEFAULT_TEACHERS.find((t: TeacherUser) => t.assignedClass === '5A');
+      if (teacher5A) {
+        const merged = [...parsed, teacher5A];
+        saveTeachers(merged);
+        return merged;
+      }
     }
     return parsed;
   } catch {
@@ -381,4 +499,32 @@ export function resetToDefaults(): void {
   });
   localStorage.setItem(STORAGE_KEYS.SUBJECTS, JSON.stringify(map));
   localStorage.setItem(STORAGE_KEYS.TEACHERS, JSON.stringify(DEFAULT_TEACHERS));
+}
+
+export function formatSyncDateTime(date: Date = new Date()): string {
+  const dateStr = date.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+  const timeStr = date.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${dateStr}, ${timeStr}`;
+}
+
+export function getStoredLastSyncedAt(): string | null {
+  try {
+    return localStorage.getItem('marksdb_last_synced_at') || null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveStoredLastSyncedAt(val: string): void {
+  try {
+    localStorage.setItem('marksdb_last_synced_at', val);
+  } catch {}
 }

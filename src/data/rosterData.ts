@@ -1,6 +1,18 @@
 import { Student, MarkRecord } from '../types';
 
 export const OFFICIAL_STUDENTS: Student[] = [
+  // Class 5A (Roll 501 - 510)
+  { rollNo: '501', name: 'Aarav Sharma', className: '5A', fatherName: 'Rajesh Sharma', motherName: 'Sunita Sharma', gender: 'M', dateOfBirth: '2016-04-12', contactNumber: '9829012345' },
+  { rollNo: '502', name: 'Ananya Verma', className: '5A', fatherName: 'Mukesh Verma', motherName: 'Kavita Verma', gender: 'F', dateOfBirth: '2016-07-20', contactNumber: '9829023456' },
+  { rollNo: '503', name: 'Ayush Kumar', className: '5A', fatherName: 'Suresh Kumar', motherName: 'Santosh Devi', gender: 'M', dateOfBirth: '2015-11-15', contactNumber: '9829034567' },
+  { rollNo: '504', name: 'Bhavna Kumari', className: '5A', fatherName: 'Dharmendra Kumar', motherName: 'Manju Devi', gender: 'F', dateOfBirth: '2016-01-08', contactNumber: '9829045678' },
+  { rollNo: '505', name: 'Deepak Dhaka', className: '5A', fatherName: 'Rameshwar Dhaka', motherName: 'Prem Devi', gender: 'M', dateOfBirth: '2016-09-25', contactNumber: '9829056789' },
+  { rollNo: '506', name: 'Divya Sharma', className: '5A', fatherName: 'Praveen Sharma', motherName: 'Pooja Sharma', gender: 'F', dateOfBirth: '2016-03-30', contactNumber: '9829067890' },
+  { rollNo: '507', name: 'Harshvardhan', className: '5A', fatherName: 'Vikram Singh', motherName: 'Anita Kanwar', gender: 'M', dateOfBirth: '2015-12-18', contactNumber: '9829078901' },
+  { rollNo: '508', name: 'Khushi Rohila', className: '5A', fatherName: 'Gopal Rohila', motherName: 'Rekha Devi', gender: 'F', dateOfBirth: '2016-06-14', contactNumber: '9829089012' },
+  { rollNo: '509', name: 'Lakshay Pachar', className: '5A', fatherName: 'Mahendra Pachar', motherName: 'Saroj Devi', gender: 'M', dateOfBirth: '2016-08-05', contactNumber: '9829090123' },
+  { rollNo: '510', name: 'Pari Kumari', className: '5A', fatherName: 'Vinod Kumar', motherName: 'Sumitra Devi', gender: 'F', dateOfBirth: '2016-10-10', contactNumber: '9829101234' },
+
   // Class 8A (Roll 801 - 825)
   { rollNo: '801', name: 'Ankit', className: '8A', fatherName: 'Tarachand', motherName: 'Sulochana Devi', gender: 'M', dateOfBirth: '2013-08-28', contactNumber: '9649003984' },
   { rollNo: '802', name: 'Chandan Sharma', className: '8A', fatherName: 'Shyam Sundar Sharma', motherName: 'Namita Sharma', gender: 'M', dateOfBirth: '2012-09-04', contactNumber: '7427855864' },

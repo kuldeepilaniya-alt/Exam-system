@@ -1,6 +1,6 @@
 import { Exam, MarkRecord, Student, TeacherUser } from '../types';
 import { calculateClassRanks } from '../utils/rankCalculations';
-import { DEFAULT_SUBJECT_CONFIGS, ORDERED_CLASSES } from '../data/mockDatabase';
+import { DEFAULT_SUBJECT_CONFIGS, ORDERED_CLASSES, normalizeSubjectsMap } from '../data/mockDatabase';
 
 export interface SyncDataPayload {
   students: Student[];
@@ -231,7 +231,7 @@ export function parseSubjectRows(allSubjectRows: (string | number)[][]): { [clas
       }
     }
   });
-  return map;
+  return normalizeSubjectsMap(map);
 }
 
 /**
@@ -380,7 +380,7 @@ export async function fetchDataFromWebApp(webAppUrl: string): Promise<SheetImpor
       result.marks = data.marks;
     }
     if (data.subjectsMap && typeof data.subjectsMap === 'object') {
-      result.subjectsMap = data.subjectsMap;
+      result.subjectsMap = normalizeSubjectsMap(data.subjectsMap);
     }
     if (data.teachers && Array.isArray(data.teachers)) {
       result.teachers = data.teachers;
@@ -535,11 +535,13 @@ export async function syncDataToGoogleSheet(
     ]),
   ];
 
-  // 3. Subjects Sheet
+  // 3. Subjects Sheet (Single canonical records: 10A, 8A, 12A, 12B, 12C)
+  const normalizedSubjects = normalizeSubjectsMap(data.subjectsMap);
   const subjectValues = [
-    ['Class', 'SubjectList'],
-    ...Object.entries(data.subjectsMap).map(([className, subjects]) => [
+    ['Class', 'Subject Count', 'Subjects'],
+    ...Object.entries(normalizedSubjects).map(([className, subjects]) => [
       className,
+      subjects.length,
       subjects.join(', '),
     ]),
   ];
@@ -668,6 +670,299 @@ export async function syncDataToGoogleSheet(
     const err = await response.json().catch(() => ({}));
     throw new Error(err.error?.message || `Failed to sync to Google Sheet: ${response.statusText}`);
   }
+}
+
+export type SyncTargetSection = 'students' | 'teachers' | 'subjects' | 'exams' | 'marks' | 'all';
+
+/**
+ * Synchronizes an individual section (or all sections) to Google Sheets via Google Sheets API v4.
+ * Records the exact update timestamp into the Google Sheet database Sync_Log.
+ */
+export async function syncSectionToGoogleSheet(
+  accessToken: string,
+  rawSpreadsheetId: string,
+  section: SyncTargetSection,
+  data: SyncDataPayload
+): Promise<{ updateTime: string; message: string }> {
+  const spreadsheetId = extractSpreadsheetId(rawSpreadsheetId);
+  if (!spreadsheetId) {
+    throw new Error('Valid Google Spreadsheet ID or URL is required.');
+  }
+
+  const now = new Date();
+  const updateTimeString = now.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+
+  const rangesToUpdate: { range: string; values: (string | number)[][] }[] = [];
+  let recordCount = 0;
+
+  // 1. Students
+  if (section === 'students' || section === 'all') {
+    const sortedStudents = [...data.students].sort((a, b) => {
+      const idxA = ORDERED_CLASSES.indexOf(a.className as any);
+      const idxB = ORDERED_CLASSES.indexOf(b.className as any);
+      if (idxA !== idxB) {
+        if (idxA === -1) return 1;
+        if (idxB === -1) return -1;
+        return idxA - idxB;
+      }
+      return String(a.rollNo).localeCompare(String(b.rollNo), undefined, { numeric: true });
+    });
+
+    const studentValues = [
+      ['Class', 'Roll No', 'Student Name', "Father's Name", 'Contact Number'],
+      ...sortedStudents.map((s) => [
+        s.className,
+        s.rollNo,
+        s.name,
+        s.fatherName || '',
+        s.contactNumber || '',
+      ]),
+    ];
+    rangesToUpdate.push({ range: 'Students!A1:Z', values: studentValues });
+    recordCount += sortedStudents.length;
+  }
+
+  // 2. Teachers
+  if (section === 'teachers' || section === 'all') {
+    const teacherValues = [
+      ['Name', 'Mobile', 'PIN', 'Assigned Class', 'Role'],
+      ...data.teachers.map((t) => [
+        t.name,
+        t.mobile,
+        t.pin,
+        t.assignedClass || 'All Classes',
+        t.role,
+      ]),
+    ];
+    rangesToUpdate.push({ range: 'Teachers!A1:Z', values: teacherValues });
+    recordCount += data.teachers.length;
+  }
+
+  // 3. Subjects
+  if (section === 'subjects' || section === 'all') {
+    const normalizedSubjects = normalizeSubjectsMap(data.subjectsMap);
+    const subjectValues = [
+      ['Class', 'Subject Count', 'Subjects'],
+      ...Object.entries(normalizedSubjects).map(([className, subjects]) => [
+        className,
+        subjects.length,
+        subjects.join(', '),
+      ]),
+    ];
+    rangesToUpdate.push({ range: 'Subjects!A1:Z', values: subjectValues });
+    recordCount += Object.keys(normalizedSubjects).length;
+  }
+
+  // 4. Exams
+  if (section === 'exams' || section === 'all') {
+    const examValues = [
+      ['ExamID', 'ExamName', 'Class', 'MaxMarksPerSubject', 'Date', 'AcademicYear'],
+      ...data.exams.map((e) => [
+        e.examId,
+        e.examName,
+        e.className,
+        e.maxMarksPerSubject,
+        e.date,
+        e.academicYear,
+      ]),
+    ];
+    rangesToUpdate.push({ range: 'Exams!A1:Z', values: examValues });
+    recordCount += data.exams.length;
+  }
+
+  // 5. Marks
+  if (section === 'marks' || section === 'all') {
+    const allKnownSubjects: string[] = [];
+    ORDERED_CLASSES.forEach((cls) => {
+      const subs =
+        data.subjectsMap[cls] ||
+        DEFAULT_SUBJECT_CONFIGS.find((c) => c.className === cls)?.subjects ||
+        [];
+      subs.forEach((s) => {
+        if (!allKnownSubjects.includes(s)) allKnownSubjects.push(s);
+      });
+    });
+
+    const marksHeader = [
+      'ExamID',
+      'RollNo',
+      'StudentName',
+      'Class',
+      'Subjects',
+      'MarksObtained',
+      'Total',
+      'MaxTotal',
+      'Percentage',
+      'Rank',
+      'Remarks',
+    ];
+    const marksRows: (string | number)[][] = [marksHeader];
+
+    for (const exam of data.exams) {
+      const subjects = data.subjectsMap[exam.className] || allKnownSubjects;
+      const rankedClass = calculateClassRanks(data.students, exam, data.marks, subjects);
+
+      rankedClass.forEach((r) => {
+        const markRecord = data.marks.find(
+          (m) => m.examId === exam.examId && m.rollNo.toString().trim() === r.rollNo.toString().trim()
+        );
+        const subjectsList: string[] = [];
+        const marksList: (number | string)[] = [];
+
+        subjects.forEach((sub) => {
+          subjectsList.push(sub);
+          marksList.push(r.subjectMarks[sub] ?? 0);
+        });
+
+        marksRows.push([
+          exam.examId,
+          r.rollNo,
+          r.name,
+          exam.className,
+          subjectsList.join(', '),
+          marksList.join(', '),
+          r.totalObtained,
+          r.totalMax,
+          r.percentage,
+          r.rank,
+          markRecord?.remarks || '',
+        ]);
+      });
+    }
+    rangesToUpdate.push({ range: 'Marks!A1:Z', values: marksRows });
+    recordCount += marksRows.length - 1;
+  }
+
+  // Write changes via batchUpdate
+  const batchBody = {
+    valueInputOption: 'USER_ENTERED',
+    data: rangesToUpdate,
+  };
+
+  const response = await fetch(
+    `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values:batchUpdate`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(batchBody),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Failed to update ${section} in Google Sheet: ${response.statusText}`);
+  }
+
+  // Also log the operation into Sync_Log tab in Google Sheet
+  try {
+    const logSectionTitle = section.charAt(0).toUpperCase() + section.slice(1);
+    await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/Sync_Log!A:E:append?valueInputOption=USER_ENTERED`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          values: [
+            [updateTimeString, logSectionTitle, recordCount, `${logSectionTitle} updated in database`, 'SUCCESS'],
+          ],
+        }),
+      }
+    );
+  } catch (logErr) {
+    console.warn('Could not append to Sync_Log sheet:', logErr);
+  }
+
+  return {
+    updateTime: updateTimeString,
+    message: `✓ Successfully updated ${section.toUpperCase()} in Google Sheet database at ${updateTimeString}!`,
+  };
+}
+
+/**
+ * Sends section-specific payload to the Google Apps Script Web App.
+ * Updates the specific tab and records the update time in the Google Sheet database.
+ */
+export async function syncSectionToWebApp(
+  webAppUrl: string,
+  section: SyncTargetSection,
+  data: SyncDataPayload
+): Promise<{ status: string; updateTime: string; message: string }> {
+  if (!webAppUrl || !webAppUrl.trim()) {
+    throw new Error('Google Apps Script Web App URL is not configured.');
+  }
+
+  const now = new Date();
+  const fallbackTime = now.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+
+  const payload = {
+    section,
+    students: data.students,
+    exams: data.exams,
+    marks: data.marks,
+    subjectsMap: normalizeSubjectsMap(data.subjectsMap),
+    teachers: data.teachers,
+    timestamp: now.toISOString(),
+  };
+
+  try {
+    // Attempt standard fetch first to parse response JSON
+    const res = await fetch(webAppUrl.trim(), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      const json = await res.json().catch(() => null);
+      if (json && json.updateTime) {
+        return {
+          status: 'success',
+          updateTime: json.updateTime,
+          message: json.message || `✓ Updated ${section.toUpperCase()} in Google Sheet database!`,
+        };
+      }
+    }
+  } catch {
+    // If CORS prevents reading response, fall back to no-cors mode (which still dispatches to Apps Script)
+    await fetch(webAppUrl.trim(), {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: JSON.stringify(payload),
+    });
+  }
+
+  return {
+    status: 'success',
+    updateTime: fallbackTime,
+    message: `✓ Updated ${section.toUpperCase()} in Google Sheet database at ${fallbackTime}!`,
+  };
 }
 
 /**

@@ -57,38 +57,44 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    var section = (payload.section || "all").toString().toLowerCase().trim();
+    var updateTime = new Date();
+    var updateTimeStr = Utilities.formatDate(updateTime, Session.getScriptTimeZone() || "GMT+05:30", "dd/MM/yyyy, hh:mm:ss a");
+
     // 1. Synchronize Students Tab
-    if (payload.students && Array.isArray(payload.students)) {
+    if ((section === "all" || section === "students") && payload.students && Array.isArray(payload.students)) {
       syncStudents(ss, payload.students);
     }
 
     // 2. Synchronize Exams Tab
-    if (payload.exams && Array.isArray(payload.exams)) {
+    if ((section === "all" || section === "exams") && payload.exams && Array.isArray(payload.exams)) {
       syncExams(ss, payload.exams);
     }
 
     // 3. Synchronize Marks Tab
-    if (payload.marks && Array.isArray(payload.marks)) {
+    if ((section === "all" || section === "marks") && payload.marks && Array.isArray(payload.marks)) {
       syncMarks(ss, payload.marks, payload.students || [], payload.subjectsMap || {});
     }
 
     // 4. Synchronize Subjects Configuration Tab
-    if (payload.subjectsMap) {
+    if ((section === "all" || section === "subjects") && payload.subjectsMap) {
       syncSubjects(ss, payload.subjectsMap);
     }
 
     // 5. Synchronize Teachers Tab (Name, Mobile, PIN, Assigned Class, Role)
-    if (payload.teachers && Array.isArray(payload.teachers)) {
+    if ((section === "all" || section === "teachers") && payload.teachers && Array.isArray(payload.teachers)) {
       syncTeachers(ss, payload.teachers);
     }
 
-    // 6. Append entry in Sync_Log Tab
-    logSync(ss, payload);
+    // 6. Append entry in Sync_Log Tab with section and timestamp
+    logSync(ss, payload, section, updateTimeStr);
 
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
-      message: "Database successfully synchronized with Google Sheets!",
-      timestamp: new Date().toISOString()
+      section: section,
+      message: (section === "all" ? "All sections" : section.toUpperCase()) + " successfully synchronized in Google Sheet database!",
+      updateTime: updateTimeStr,
+      timestamp: updateTime.toISOString()
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
@@ -296,21 +302,36 @@ function readMarksFromSheet(ss) {
 }
 
 /**
- * Reads Subjects sheet into class curriculum map
+ * Reads Subjects sheet into class curriculum map (Single consolidated class records)
  */
 function readSubjectsFromSheet(ss) {
   var sheet = ss.getSheetByName("Subjects");
   if (!sheet || sheet.getLastRow() < 2) return {};
   var data = sheet.getDataRange().getValues();
   var map = {};
+
+  function normCls(name) {
+    if (!name) return "10A";
+    var c = String(name).trim().toLowerCase();
+    if (c === "10a" || c === "10" || c.indexOf("class 10") !== -1 || c.indexOf("class10") !== -1) return "10A";
+    if (c === "8a" || c === "8" || c.indexOf("class 8") !== -1 || c.indexOf("class8") !== -1) return "8A";
+    if (c === "12a" || c.indexOf("12a") !== -1 || (c.indexOf("12") !== -1 && c.indexOf("sci") !== -1)) return "12A";
+    if (c === "12b" || c.indexOf("12b") !== -1 || (c.indexOf("12") !== -1 && c.indexOf("ag") !== -1)) return "12B";
+    if (c === "12c" || c.indexOf("12c") !== -1 || (c.indexOf("12") !== -1 && (c.indexOf("art") !== -1 || c.indexOf("hum") !== -1))) return "12C";
+    return String(name).trim();
+  }
+
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
     if (row[0] && row.length > 1) {
-      var cls = String(row[0]).trim();
+      var rawCls = String(row[0]).trim();
+      var targetCls = normCls(rawCls);
       var rawSub = row.length > 2 && isNaN(Number(row[2])) && !isNaN(Number(row[1])) ? row[2] : row[1];
       var list = String(rawSub).split(",").map(function (s) { return s.trim(); }).filter(Boolean);
       if (list.length > 0) {
-        map[cls] = list;
+        if (!map[targetCls] || map[targetCls].length === 0) {
+          map[targetCls] = list;
+        }
       }
     }
   }
@@ -564,7 +585,7 @@ function syncMarks(ss, marks, students, subjectsMap) {
 }
 
 /**
- * 4. Synchronize Subjects Configuration Sheet
+ * 4. Synchronize Subjects Configuration Sheet (Single consolidated class records)
  */
 function syncSubjects(ss, subjectsMap) {
   var sheet = getOrCreateSheet(ss, "Subjects");
@@ -573,11 +594,46 @@ function syncSubjects(ss, subjectsMap) {
   var headers = ["Class", "Subject Count", "Subjects"];
   applyHeaderStyles(sheet, headers);
 
-  var classes = Object.keys(subjectsMap);
+  var canonicalOrder = ["10A", "8A", "12A", "12B", "12C"];
+  var normalizedMap = {};
+
+  function normCls(name) {
+    if (!name) return "10A";
+    var c = String(name).trim().toLowerCase();
+    if (c === "10a" || c === "10" || c.indexOf("class 10") !== -1 || c.indexOf("class10") !== -1) return "10A";
+    if (c === "8a" || c === "8" || c.indexOf("class 8") !== -1 || c.indexOf("class8") !== -1) return "8A";
+    if (c === "12a" || c.indexOf("12a") !== -1 || (c.indexOf("12") !== -1 && c.indexOf("sci") !== -1)) return "12A";
+    if (c === "12b" || c.indexOf("12b") !== -1 || (c.indexOf("12") !== -1 && c.indexOf("ag") !== -1)) return "12B";
+    if (c === "12c" || c.indexOf("12c") !== -1 || (c.indexOf("12") !== -1 && (c.indexOf("art") !== -1 || c.indexOf("hum") !== -1))) return "12C";
+    return String(name).trim();
+  }
+
+  // Deduplicate and filter out removable alias rows: Class 10, Class 8, Class 12A, Class 12B, Class 12C
+  if (subjectsMap) {
+    Object.keys(subjectsMap).forEach(function (rawKey) {
+      var norm = normCls(rawKey);
+      if (!norm) return;
+      var list = subjectsMap[rawKey];
+      if (!Array.isArray(list) || list.length === 0) return;
+      if (!normalizedMap[norm] || normalizedMap[norm].length === 0) {
+        normalizedMap[norm] = list;
+      }
+    });
+  }
+
+  // Build the single records list for the 5 classes in order
+  var classes = [];
+  canonicalOrder.forEach(function (cls) {
+    if (normalizedMap[cls]) classes.push(cls);
+  });
+  Object.keys(normalizedMap).forEach(function (cls) {
+    if (classes.indexOf(cls) === -1) classes.push(cls);
+  });
+
   if (classes.length === 0) return;
 
   var rows = classes.map(function (cls) {
-    var list = subjectsMap[cls] || [];
+    var list = normalizedMap[cls] || [];
     var strList = Array.isArray(list) ? list.join(", ") : String(list);
     return [cls, Array.isArray(list) ? list.length : 0, strList];
   });
@@ -623,32 +679,40 @@ function syncTeachers(ss, teachers) {
 /**
  * 6. Append Log entry in Sync_Log Sheet
  */
-function logSync(ss, payload) {
+function logSync(ss, payload, section, updateTimeStr) {
   var sheet = getOrCreateSheet(ss, "Sync_Log");
+  var sec = (section || "All").toString();
+  var secFormatted = sec.charAt(0).toUpperCase() + sec.slice(1);
   
   if (sheet.getLastRow() === 0) {
     applyHeaderStyles(sheet, [
       "Timestamp",
-      "Students Count",
-      "Exams Count",
-      "Marks Rows",
+      "Section / Area",
+      "Records Count",
+      "Operation / Note",
       "Status"
     ]);
   }
 
-  var studentCount = payload.students ? payload.students.length : 0;
-  var examCount = payload.exams ? payload.exams.length : 0;
-  var marksCount = payload.marks ? payload.marks.length : 0;
+  var count = 0;
+  if (sec.toLowerCase() === "students") count = payload.students ? payload.students.length : 0;
+  else if (sec.toLowerCase() === "exams") count = payload.exams ? payload.exams.length : 0;
+  else if (sec.toLowerCase() === "marks") count = payload.marks ? payload.marks.length : 0;
+  else if (sec.toLowerCase() === "teachers") count = payload.teachers ? payload.teachers.length : 0;
+  else if (sec.toLowerCase() === "subjects") count = payload.subjectsMap ? Object.keys(payload.subjectsMap).length : 0;
+  else count = (payload.students ? payload.students.length : 0) + (payload.exams ? payload.exams.length : 0) + (payload.marks ? payload.marks.length : 0);
 
   sheet.appendRow([
-    new Date(),
-    studentCount,
-    examCount,
-    marksCount,
-    "Sync successful"
+    updateTimeStr || new Date(),
+    secFormatted,
+    count,
+    secFormatted + " updated in Google Sheet database",
+    "SUCCESS"
   ]);
 
   sheet.autoResizeColumn(1);
+  sheet.autoResizeColumn(2);
+  sheet.autoResizeColumn(4);
   sheet.autoResizeColumn(5);
 }
 `;

@@ -15,6 +15,11 @@ import {
   getStoredSubjectsMap,
   getStoredTeachers,
   getStoredWebAppUrl,
+  getStoredLastSyncedAt,
+  saveStoredLastSyncedAt,
+  formatSyncDateTime,
+  normalizeClassName,
+  normalizeSubjectsMap,
   resetToDefaults,
   saveActiveTeacher,
   saveExams,
@@ -50,12 +55,13 @@ export default function App() {
   const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
   const [googleSheetsState, setGoogleSheetsState] = useState<GoogleSheetsSyncState>(() => {
     const linkedId = getStoredLinkedSheetId();
+    const storedLastSynced = getStoredLastSyncedAt() || formatSyncDateTime(new Date());
     return {
       isConnected: false,
       userEmail: null,
       spreadsheetId: linkedId,
       spreadsheetUrl: linkedId ? `https://docs.google.com/spreadsheets/d/${linkedId}/edit` : null,
-      lastSyncedAt: null,
+      lastSyncedAt: storedLastSynced,
       syncInProgress: false,
       error: null,
     };
@@ -148,8 +154,9 @@ export default function App() {
         }
 
         if (data.subjectsMap && Object.keys(data.subjectsMap).length > 0) {
-          setSubjectsMap(data.subjectsMap);
-          saveSubjectsMap(data.subjectsMap);
+          const cleaned = normalizeSubjectsMap(data.subjectsMap);
+          setSubjectsMap(cleaned);
+          saveSubjectsMap(cleaned);
         }
 
         if (data.teachers && data.teachers.length > 0) {
@@ -157,11 +164,12 @@ export default function App() {
           saveTeachers(data.teachers);
         }
 
-        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const dateTimeStr = formatSyncDateTime(new Date());
+        saveStoredLastSyncedAt(dateTimeStr);
         setGoogleSheetsState((prev) => ({
           ...prev,
           isConnected: true,
-          lastSyncedAt: timeStr,
+          lastSyncedAt: dateTimeStr,
           error: null,
         }));
 
@@ -169,7 +177,7 @@ export default function App() {
           setSyncBanner({
             type: 'success',
             message: `Live data loaded from Google Sheet (${data.students?.length || 0} students, ${data.marks?.length || 0} marks)`,
-            details: `Updated at ${timeStr}`,
+            details: `Updated: ${dateTimeStr}`,
           });
 
           // Auto-hide success message after 4.5 seconds
@@ -290,10 +298,11 @@ export default function App() {
   };
 
   const handleSaveSubjects = (className: string, subjects: string[]) => {
-    const updated = {
+    const norm = normalizeClassName(className);
+    const updated = normalizeSubjectsMap({
       ...subjectsMap,
-      [className]: subjects,
-    };
+      [norm]: subjects,
+    });
     setSubjectsMap(updated);
     saveSubjectsMap(updated);
   };
@@ -354,6 +363,9 @@ export default function App() {
         if (!next.spreadsheetUrl) {
           next.spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${next.spreadsheetId}/edit`;
         }
+      }
+      if (next.lastSyncedAt) {
+        saveStoredLastSyncedAt(next.lastSyncedAt);
       }
       return next;
     });

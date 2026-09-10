@@ -53,6 +53,9 @@ import {
   extractSpreadsheetId,
   loadDataFromGoogleSheet,
   syncDataToGoogleSheet,
+  syncSectionToGoogleSheet,
+  syncSectionToWebApp,
+  SyncTargetSection,
 } from '../services/googleSheets';
 import {
   createDefaultExams,
@@ -60,6 +63,7 @@ import {
   generateAllSampleMarks,
   ORDERED_CLASSES,
   normalizeClassName,
+  normalizeSubjectsMap,
   saveLinkedSheetId,
   saveLinkedSheetUrl,
   getStoredLinkedSheetUrl,
@@ -142,6 +146,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     } else {
       saveTeachers(updatedTeachers);
     }
+    setDirtySections((prev) => ({ ...prev, teachers: true }));
 
     // Auto-sync teachers to Google Apps Script Web App if configured
     const activeUrl = webAppUrl || googleSheetsState.spreadsheetUrl || getStoredWebAppUrl();
@@ -169,6 +174,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     } else {
       saveStudents(updatedStudents);
     }
+    setDirtySections((prev) => ({ ...prev, students: true }));
   };
 
   const handleUpdateExamsList = (updatedExams: Exam[]) => {
@@ -179,6 +185,21 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     } else {
       saveExams(updatedExams);
     }
+    setDirtySections((prev) => ({ ...prev, exams: true }));
+  };
+
+  const handleSaveSubjectsWrapper = (className: string, subjectsList: string[]) => {
+    if (onSaveSubjects) {
+      onSaveSubjects(className, subjectsList);
+    }
+    setDirtySections((prev) => ({ ...prev, subjects: true }));
+  };
+
+  const handleDeleteExamWrapper = (examId: string) => {
+    if (onDeleteExam) {
+      onDeleteExam(examId);
+    }
+    setDirtySections((prev) => ({ ...prev, exams: true, marks: true }));
   };
   // Available classes ordered strictly as per user-specified sequence
   const availableClasses = useMemo(() => {
@@ -221,10 +242,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     return found || classExams[0] || null;
   }, [classExams, selectedExamId]);
 
-  // Active subject list for selected class
+  // Active subject list for selected class (normalized single records)
+  const normalizedSubjectsMap = useMemo(() => normalizeSubjectsMap(subjectsMap), [subjectsMap]);
+
   const subjects = useMemo(() => {
     return (
-      subjectsMap[selectedClass] ||
+      normalizedSubjectsMap[selectedClass] ||
       DEFAULT_SUBJECT_CONFIGS.find((c) => c.className === selectedClass)?.subjects || [
         'Hindi',
         'English',
@@ -234,7 +257,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         'Sanskrit',
       ]
     );
-  }, [subjectsMap, selectedClass]);
+  }, [normalizedSubjectsMap, selectedClass]);
 
   // Search filter
   const [searchQuery, setSearchQuery] = useState('');
@@ -279,6 +302,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       const updatedMarks = marks.filter((m) => m.examId !== targetId);
       onUpdateMarks(updatedMarks);
     }
+    setDirtySections((prev) => ({ ...prev, exams: true, marks: true }));
 
     const remaining = classExams.filter((e) => e.examId !== targetId);
     if (remaining.length > 0) {
@@ -302,6 +326,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       );
       onUpdateMarks(updated);
     }
+    setDirtySections((prev) => ({ ...prev, marks: true }));
 
     setDeleteMarksTarget(null);
     setSyncStatusMessage(`✓ Cleared/deleted test marks for student ${student.name} in ${exam.examName}.`);
@@ -315,10 +340,80 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     if (onDeleteStudent) {
       onDeleteStudent(rollNo, className);
     }
+    setDirtySections((prev) => ({ ...prev, students: true, marks: true }));
 
     setDeleteStudentTarget(null);
     setSyncStatusMessage(`✓ Student ${name} (Roll #${rollNo}) removed from class roster.`);
     setTimeout(() => setSyncStatusMessage(null), 4500);
+  };
+
+  // Section dirty state tracking
+  const [dirtySections, setDirtySections] = useState<{
+    students: boolean;
+    teachers: boolean;
+    subjects: boolean;
+    exams: boolean;
+    marks: boolean;
+  }>({
+    students: false,
+    teachers: false,
+    subjects: false,
+    exams: false,
+    marks: false,
+  });
+
+  // Section syncing state
+  const [sectionSyncing, setSectionSyncing] = useState<{
+    students: boolean;
+    teachers: boolean;
+    subjects: boolean;
+    exams: boolean;
+    marks: boolean;
+    all: boolean;
+  }>({
+    students: false,
+    teachers: false,
+    subjects: false,
+    exams: false,
+    marks: false,
+    all: false,
+  });
+
+  // Last saved timestamps for each section (persisted in localStorage)
+  const [lastSavedTimes, setLastSavedTimes] = useState<{
+    students: string | null;
+    teachers: string | null;
+    subjects: string | null;
+    exams: string | null;
+    marks: string | null;
+    all: string | null;
+  }>(() => {
+    try {
+      const stored = localStorage.getItem('marksdb_last_saved_times');
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return {
+      students: null,
+      teachers: null,
+      subjects: null,
+      exams: null,
+      marks: null,
+      all: null,
+    };
+  });
+
+  const updateSectionSavedTime = (section: SyncTargetSection, timeStr: string) => {
+    setLastSavedTimes((prev) => {
+      const updated = {
+        ...prev,
+        [section]: timeStr,
+        all: timeStr,
+      };
+      try {
+        localStorage.setItem('marksdb_last_saved_times', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
   };
 
   // Stored URLs for Apps Script Web App and Google Sheet
@@ -438,6 +533,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     });
 
     onUpdateMarks(updated);
+    setDirtySections((prev) => ({ ...prev, marks: true }));
     setIsEditMarksModalOpen(false);
   };
 
@@ -455,6 +551,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     };
 
     onAddStudent(newStudent);
+    setDirtySections((prev) => ({ ...prev, students: true }));
     setNewRollNo('');
     setNewName('');
     setNewFatherName('');
@@ -478,6 +575,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     };
 
     onAddExam(newExam);
+    setDirtySections((prev) => ({ ...prev, exams: true }));
     setSelectedExamId(examId);
     setNewExamName('');
     setIsAddExamModalOpen(false);
@@ -789,6 +887,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       ...prev,
       [rollNo]: val,
     }));
+    setDirtySections((prev) => ({ ...prev, marks: true }));
   };
 
   const handleAutoFillSubjectSampleMarks = () => {
@@ -804,6 +903,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       draft[st.rollNo] = score;
     });
     setSubjectDraftMarks(draft);
+    setDirtySections((prev) => ({ ...prev, marks: true }));
   };
 
   const handleSetAllSubjectFullMarks = () => {
@@ -814,6 +914,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       draft[st.rollNo] = max;
     });
     setSubjectDraftMarks(draft);
+    setDirtySections((prev) => ({ ...prev, marks: true }));
   };
 
   const handleClearSubjectMarks = () => {
@@ -822,6 +923,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
       draft[st.rollNo] = '';
     });
     setSubjectDraftMarks(draft);
+    setDirtySections((prev) => ({ ...prev, marks: true }));
   };
 
   const handleSubmitSubjectMarks = async () => {
@@ -872,21 +974,26 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             students,
             exams,
             marks: updatedMarks,
-            subjectsMap,
+            subjectsMap: normalizedSubjectsMap,
             teachers: teachers,
           }
         );
+        const nowTime = new Date().toLocaleTimeString();
+        updateSectionSavedTime('marks', nowTime);
+        setDirtySections((prev) => ({ ...prev, marks: false }));
         setSyncStatusMessage(
-          `✓ Submitted & auto-synced marks for "${activeSubject}" across ${classStudents.length} students to Google Sheet!`
+          `✓ Submitted & auto-synced marks for "${activeSubject}" across ${classStudents.length} students to Google Sheet at ${nowTime}!`
         );
       } catch {
+        setDirtySections((prev) => ({ ...prev, marks: true }));
         setSyncStatusMessage(
-          `✓ Marks for "${activeSubject}" updated locally! (Google Sheet sync pending)`
+          `✓ Marks for "${activeSubject}" updated locally! (Click Save to Database to update Google Sheet)`
         );
       }
     } else {
+      setDirtySections((prev) => ({ ...prev, marks: true }));
       setSyncStatusMessage(
-        `✓ Successfully submitted and updated marks for "${activeSubject}" across all ${classStudents.length} students in ${activeExam.examName}! Class rankings updated.`
+        `✓ Successfully submitted marks for "${activeSubject}" across ${classStudents.length} students in ${activeExam.examName}! Click "Save Marks to Database" to sync to Google Sheet.`
       );
     }
   };
@@ -901,6 +1008,94 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
   };
 
   // Sync to Google Sheets
+
+  const handleInitiateSectionSync = async (section: SyncTargetSection) => {
+    const activeUrl = webAppUrl || googleSheetsState.spreadsheetUrl || getStoredWebAppUrl();
+
+    if (!activeUrl && !googleSheetsState.spreadsheetId) {
+      setIsSettingsModalOpen(true);
+      return;
+    }
+
+    setSectionSyncing((prev) => ({ ...prev, [section]: true, ...(section === 'all' ? { all: true } : {}) }));
+    setSyncStatusMessage(null);
+
+    const payload = {
+      students,
+      exams,
+      marks,
+      subjectsMap: normalizedSubjectsMap,
+      teachers,
+    };
+
+    let reportedTime = new Date().toLocaleTimeString('en-IN', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+
+    try {
+      // 1. Sync to Google Apps Script Web App if configured
+      if (activeUrl && activeUrl.startsWith('https://script.google.com/')) {
+        const webAppRes = await syncSectionToWebApp(activeUrl, section, payload);
+        if (webAppRes && webAppRes.updateTime) {
+          reportedTime = webAppRes.updateTime;
+        }
+      }
+
+      // 2. Also sync directly via Google Sheets API if accessToken exists
+      if (googleAccessToken && googleSheetsState.spreadsheetId) {
+        try {
+          const apiRes = await syncSectionToGoogleSheet(
+            googleAccessToken,
+            googleSheetsState.spreadsheetId,
+            section,
+            payload
+          );
+          if (apiRes && apiRes.updateTime) {
+            reportedTime = apiRes.updateTime;
+          }
+        } catch (apiErr) {
+          console.warn('Direct Google Sheet API sync note:', apiErr);
+        }
+      }
+
+      // Record update time in state & localStorage
+      updateSectionSavedTime(section, reportedTime);
+
+      // Reset dirty state for this section
+      setDirtySections((prev) => ({
+        ...prev,
+        ...(section === 'all'
+          ? { students: false, teachers: false, subjects: false, exams: false, marks: false }
+          : { [section]: false }),
+      }));
+
+      onUpdateGoogleSheetsState({
+        isConnected: true,
+        lastSyncedAt: reportedTime,
+        syncInProgress: false,
+        error: null,
+      });
+
+      const sectionLabel =
+        section === 'all'
+          ? 'All Database Records'
+          : `${section.toUpperCase()} Data`;
+
+      setSyncStatusMessage(
+        `✓ ${sectionLabel} successfully saved & recorded in Google Sheet database at ${reportedTime}!`
+      );
+      setTimeout(() => setSyncStatusMessage(null), 6000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Synchronization failed.';
+      setSyncStatusMessage(`Sync error on ${section}: ${msg}`);
+      onUpdateGoogleSheetsState({ error: msg });
+    } finally {
+      setSectionSyncing((prev) => ({ ...prev, [section]: false, ...(section === 'all' ? { all: false } : {}) }));
+    }
+  };
   
   const handleInitiateGoogleSync = () => {
     const activeUrl = webAppUrl || googleSheetsState.spreadsheetUrl || getStoredWebAppUrl();
@@ -913,55 +1108,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
 
   const handleExecuteGoogleSync = async () => {
     setIsSyncing(true);
-    setSyncStatusMessage(null);
     try {
-      const activeUrl = webAppUrl || googleSheetsState.spreadsheetUrl || getStoredWebAppUrl();
-      if (!activeUrl) throw new Error('No Google Apps Script Web App URL configured. Please click Settings to configure it.');
-      
-      const payload = {
-        students,
-        exams,
-        marks,
-        subjectsMap,
-        teachers,
-      };
-
-      await fetch(activeUrl, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-        body: JSON.stringify(payload)
-      });
-
-      // Also sync directly via Google Sheets API if accessToken exists
-      if (googleAccessToken && googleSheetsState.spreadsheetId) {
-        try {
-          await syncDataToGoogleSheet(
-            googleAccessToken,
-            googleSheetsState.spreadsheetId,
-            payload
-          );
-        } catch (apiErr) {
-          console.warn('Direct Google Sheet API sync note:', apiErr);
-        }
-      }
-      
-      const timestamp = new Date().toLocaleTimeString();
-      onUpdateGoogleSheetsState({
-        isConnected: true,
-        spreadsheetUrl: activeUrl,
-        lastSyncedAt: timestamp,
-        syncInProgress: false,
-        error: null,
-      });
-
-      setSyncStatusMessage('✓ Successfully saved all database records (Students, Exams, Marks, Subjects & Teachers) to Google Sheets!');
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Webhook synchronization failed.';
-      setSyncStatusMessage(`Sync error: ${msg}`);
-      onUpdateGoogleSheetsState({ error: msg });
+      await handleInitiateSectionSync('all');
     } finally {
       setIsSyncing(false);
       setIsConfirmSyncOpen(false);
@@ -1007,10 +1155,31 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               type="button"
               id="google-sync-top-btn"
               onClick={handleInitiateGoogleSync}
-              className="flex items-center gap-1.5 rounded-xl bg-white text-slate-900 px-4 py-2.5 text-xs font-black shadow-sm hover:bg-slate-100 active:scale-95 transition"
+              title={
+                Object.values(dirtySections).some(Boolean)
+                  ? 'Unsaved changes detected. Click to save entire database to Google Sheets.'
+                  : 'Save all database records to Google Sheets'
+              }
+              className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-black transition active:scale-95 cursor-pointer ${
+                Object.values(dirtySections).some(Boolean)
+                  ? 'bg-rose-500 hover:bg-rose-400 text-white animate-pulse shadow-lg shadow-rose-900/40 ring-2 ring-rose-300'
+                  : 'bg-white text-slate-900 hover:bg-slate-100 shadow-sm'
+              }`}
             >
-              <Sheet className="h-4 w-4 text-emerald-600" />
-              <span>Save Data to Database</span>
+              {Object.values(dirtySections).some(Boolean) ? (
+                <>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                  </span>
+                  <span>Save Data (Updates Needed)</span>
+                </>
+              ) : (
+                <>
+                  <Sheet className="h-4 w-4 text-emerald-600" />
+                  <span>Save Data to Database</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -1047,6 +1216,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         >
           <Award className={`h-4 w-4 ${activeManagementTab === 'merit' ? 'text-amber-400' : 'text-slate-500'}`} />
           <span>Class Merit List &amp; Marks</span>
+          {dirtySections.marks && (
+            <span className="relative flex h-2 w-2 ml-1" title="Unsaved marks changes pending sync">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+            </span>
+          )}
         </button>
 
         <button
@@ -1068,6 +1243,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           >
             {teachers.length}
           </span>
+          {dirtySections.teachers && (
+            <span className="relative flex h-2 w-2 ml-1" title="Unsaved teacher changes pending sync">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+            </span>
+          )}
         </button>
 
         <button
@@ -1089,6 +1270,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           >
             {students.length}
           </span>
+          {dirtySections.students && (
+            <span className="relative flex h-2 w-2 ml-1" title="Unsaved student changes pending sync">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+            </span>
+          )}
         </button>
 
         <button
@@ -1108,8 +1295,14 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               activeManagementTab === 'subjects' ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
             }`}
           >
-            {Object.keys(subjectsMap).length} Classes
+            {Object.keys(normalizedSubjectsMap).length} Classes
           </span>
+          {dirtySections.subjects && (
+            <span className="relative flex h-2 w-2 ml-1" title="Unsaved subject changes pending sync">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+            </span>
+          )}
         </button>
 
         <button
@@ -1131,6 +1324,12 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           >
             {exams.length}
           </span>
+          {dirtySections.exams && (
+            <span className="relative flex h-2 w-2 ml-1" title="Unsaved exam changes pending sync">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+            </span>
+          )}
         </button>
       </div>
 
@@ -1140,8 +1339,10 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           teachers={teachers}
           activeTeacher={activeTeacher}
           onUpdateTeachers={handleUpdateTeachersList}
-          onSaveToDatabase={handleInitiateGoogleSync}
-          isSyncing={isSyncing}
+          onSaveToDatabase={() => handleInitiateSectionSync('teachers')}
+          hasUnsavedChanges={dirtySections.teachers}
+          isSyncing={sectionSyncing.teachers}
+          lastUpdatedTime={lastSavedTimes.teachers}
         />
       )}
 
@@ -1153,16 +1354,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           subjectsMap={subjectsMap}
           onUpdateStudents={handleUpdateStudentsList}
           onViewStudentResult={onViewStudentResult}
-          onSaveToDatabase={handleInitiateGoogleSync}
+          onSaveToDatabase={() => handleInitiateSectionSync('students')}
+          hasUnsavedChanges={dirtySections.students}
+          isSyncing={sectionSyncing.students}
+          lastUpdatedTime={lastSavedTimes.students}
           activeExamId={activeExam?.examId}
         />
       )}
 
       {activeManagementTab === 'subjects' && (
         <SubjectsManager
-          subjectsMap={subjectsMap}
-          onSaveSubjects={onSaveSubjects || ((cls, subs) => {})}
-          onSaveToDatabase={handleInitiateGoogleSync}
+          subjectsMap={normalizedSubjectsMap}
+          onSaveSubjects={handleSaveSubjectsWrapper}
+          onSaveToDatabase={() => handleInitiateSectionSync('subjects')}
+          hasUnsavedChanges={dirtySections.subjects}
+          isSyncing={sectionSyncing.subjects}
+          lastUpdatedTime={lastSavedTimes.subjects}
         />
       )}
 
@@ -1173,13 +1380,16 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           marks={marks}
           subjectsMap={subjectsMap}
           onUpdateExams={handleUpdateExamsList}
-          onDeleteExam={onDeleteExam}
+          onDeleteExam={handleDeleteExamWrapper}
           onSelectExamForGrading={(examId, cls) => {
             setSelectedClass(cls);
             setSelectedExamId(examId);
             setActiveManagementTab('merit');
           }}
-          onSaveToDatabase={handleInitiateGoogleSync}
+          onSaveToDatabase={() => handleInitiateSectionSync('exams')}
+          hasUnsavedChanges={dirtySections.exams}
+          isSyncing={sectionSyncing.exams}
+          lastUpdatedTime={lastSavedTimes.exams}
         />
       )}
 
@@ -1266,6 +1476,47 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           >
             <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">CSV</span>
+          </button>
+
+          {/* Individual Marks Save to Database Button */}
+          <button
+            type="button"
+            id="sync-marks-database-btn"
+            onClick={() => handleInitiateSectionSync('marks')}
+            disabled={sectionSyncing.marks}
+            title={
+              dirtySections.marks
+                ? 'Marks have pending unsaved updates. Click to save to Google Sheet database.'
+                : lastSavedTimes.marks
+                ? `Marks data up to date. Last saved at ${lastSavedTimes.marks}`
+                : 'Save marks to Google Sheet database'
+            }
+            className={`flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-black transition shadow-xs active:scale-95 disabled:opacity-60 cursor-pointer ${
+              dirtySections.marks
+                ? 'bg-rose-600 hover:bg-rose-500 text-white animate-pulse ring-2 ring-rose-400 shadow-rose-200'
+                : 'border border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+            }`}
+          >
+            {dirtySections.marks ? (
+              <>
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                </span>
+                <span>{sectionSyncing.marks ? 'Saving Marks...' : 'Save Marks (Update Needed)'}</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                <span>
+                  {sectionSyncing.marks
+                    ? 'Saving...'
+                    : lastSavedTimes.marks
+                    ? `Marks Saved (${lastSavedTimes.marks})`
+                    : 'Save Marks to DB'}
+                </span>
+              </>
+            )}
           </button>
 
           <button
@@ -1448,15 +1699,57 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={handleSubmitSubjectMarks}
-                id="submit-subject-marks-top-btn"
-                className="flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-5 py-2.5 text-xs font-black text-slate-950 shadow-md active:scale-95 transition"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                <span>Update &ldquo;{activeSubject}&rdquo; Marks</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSubmitSubjectMarks}
+                  id="submit-subject-marks-top-btn"
+                  className="flex items-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-md active:scale-95 transition cursor-pointer"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>Update &ldquo;{activeSubject}&rdquo; Marks</span>
+                </button>
+
+                <button
+                  type="button"
+                  id="subject-portal-save-marks-db-btn"
+                  onClick={() => handleInitiateSectionSync('marks')}
+                  disabled={sectionSyncing.marks}
+                  title={
+                    dirtySections.marks
+                      ? 'Unsaved marks detected. Click to update Google Sheet database.'
+                      : lastSavedTimes.marks
+                      ? `Marks database saved at ${lastSavedTimes.marks}`
+                      : 'Save marks to database'
+                  }
+                  className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-black transition shadow-md active:scale-95 disabled:opacity-60 cursor-pointer ${
+                    dirtySections.marks
+                      ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-900/50 animate-pulse ring-2 ring-rose-400'
+                      : 'border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700'
+                  }`}
+                >
+                  {dirtySections.marks ? (
+                    <>
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                      </span>
+                      <span>{sectionSyncing.marks ? 'Updating Marks DB...' : 'Save Marks to Database'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                      <span>
+                        {sectionSyncing.marks
+                          ? 'Saving...'
+                          : lastSavedTimes.marks
+                          ? `Marks Saved (${lastSavedTimes.marks})`
+                          : 'Save Marks to Database'}
+                      </span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Subject Selector Buttons (Chips) */}

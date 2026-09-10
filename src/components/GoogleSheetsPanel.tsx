@@ -26,7 +26,7 @@ import {
   loadDataFromGoogleSheet,
   syncDataToGoogleSheet,
 } from '../services/googleSheets';
-import { saveLinkedSheetId } from '../data/mockDatabase';
+import { saveLinkedSheetId, normalizeSubjectsMap } from '../data/mockDatabase';
 import { ConfirmationModal } from './ConfirmationModal';
 
 interface GoogleSheetsPanelProps {
@@ -136,7 +136,7 @@ export const GoogleSheetsPanel: React.FC<GoogleSheetsPanelProps> = ({
           students,
           exams,
           marks,
-          subjectsMap,
+          subjectsMap: normalizeSubjectsMap(subjectsMap),
           teachers,
         });
 

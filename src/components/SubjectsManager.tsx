@@ -1,24 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   ArrowDown,
   ArrowUp,
   BookOpen,
   Check,
+  CheckCircle2,
   Edit2,
-  Layers,
   Plus,
+  RotateCcw,
   Sparkles,
+  Table,
   Trash2,
   X,
 } from 'lucide-react';
-import { ORDERED_CLASSES } from '../data/mockDatabase';
+import {
+  normalizeClassName,
+  normalizeSubjectsMap,
+  DEFAULT_SUBJECT_CONFIGS,
+} from '../data/mockDatabase';
 import { ConfirmationModal } from './ConfirmationModal';
 
 interface SubjectsManagerProps {
   subjectsMap: { [className: string]: string[] };
   onSaveSubjects: (className: string, subjects: string[]) => void;
   onSaveToDatabase?: () => void;
+  hasUnsavedChanges?: boolean;
+  isSyncing?: boolean;
+  lastUpdatedTime?: string | null;
 }
+
+const CANONICAL_CLASSES = ['5A', '8A', '10A', '12A', '12B', '12C'] as const;
 
 const COMMON_PRESET_SUBJECTS = [
   'Hindi',
@@ -49,6 +60,9 @@ export const SubjectsManager: React.FC<SubjectsManagerProps> = ({
   subjectsMap,
   onSaveSubjects,
   onSaveToDatabase,
+  hasUnsavedChanges = false,
+  isSyncing = false,
+  lastUpdatedTime = null,
 }) => {
   const [selectedClass, setSelectedClass] = useState<string>('10A');
   const [newSubjectName, setNewSubjectName] = useState('');
@@ -57,14 +71,61 @@ export const SubjectsManager: React.FC<SubjectsManagerProps> = ({
   const [deleteTargetSubject, setDeleteTargetSubject] = useState<string | null>(null);
   const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null);
 
-  const currentClassSubjects = subjectsMap[selectedClass] || [
-    'Hindi',
-    'English',
-    'Science',
-    'Maths',
-    'Social Science',
-    'Sanskrit',
-  ];
+  // Normalized map: guaranteed single records for 10A, 8A, 12A, 12B, 12C
+  const cleanSubjectsMap = useMemo(() => normalizeSubjectsMap(subjectsMap), [subjectsMap]);
+
+  // Check if raw subjectsMap currently contains redundant rows: Class 10, Class 8, Class 12A, Class 12B, Class 12C, Class 5
+  const hasDuplicateRows = useMemo(() => {
+    return Object.keys(subjectsMap).some((k) => {
+      const lower = k.trim().toLowerCase();
+      return (
+        lower === 'class 5' ||
+        lower === 'class 5a' ||
+        lower === 'class5' ||
+        lower === 'class5a' ||
+        lower === 'class 10' ||
+        lower === 'class 8' ||
+        lower === 'class 12a' ||
+        lower === 'class 12b' ||
+        lower === 'class 12c' ||
+        lower === 'class10' ||
+        lower === 'class8' ||
+        lower === 'class12a' ||
+        lower === 'class12b' ||
+        lower === 'class12c'
+      );
+    });
+  }, [subjectsMap]);
+
+  // List of active classes to display (strictly single records, starting with canonical 10A, 8A, 12A, 12B, 12C)
+  const displayClasses = useMemo(() => {
+    const extra = Object.keys(cleanSubjectsMap).filter(
+      (c) => !(CANONICAL_CLASSES as readonly string[]).includes(c)
+    );
+    return [...CANONICAL_CLASSES, ...extra];
+  }, [cleanSubjectsMap]);
+
+  const currentClassSubjects =
+    cleanSubjectsMap[selectedClass] ||
+    DEFAULT_SUBJECT_CONFIGS.find((c) => c.className === selectedClass)?.subjects || [
+      'Hindi',
+      'English',
+      'Science',
+      'Maths',
+      'Social Science',
+      'Sanskrit',
+    ];
+
+  const handleConsolidateDuplicates = () => {
+    const consolidated = normalizeSubjectsMap(subjectsMap);
+    Object.entries(consolidated).forEach(([cls, list]) => {
+      onSaveSubjects(cls, list);
+    });
+    setFeedbackMessage(
+      '✓ Consolidated duplicate class records! Maintained single canonical records for 10A, 8A, 12A, 12B, and 12C; removed duplicate rows (Class 10, Class 8, Class 12A, Class 12B, Class 12C).'
+    );
+    setTimeout(() => setFeedbackMessage(null), 5000);
+  };
 
   const handleAddSubject = (subjectToAdd?: string) => {
     const name = (subjectToAdd || newSubjectName).trim();
@@ -152,26 +213,57 @@ export const SubjectsManager: React.FC<SubjectsManagerProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-black text-slate-900 tracking-tight sm:text-2xl">
-                  Subjects &amp; Curriculum Management
+                  Subject Area
                 </h2>
-                <span className="rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-black text-purple-800">
-                  {ORDERED_CLASSES.length} Classes
+                <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-black text-emerald-800 flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Single Records ({displayClasses.length} Classes)
                 </span>
               </div>
               <p className="mt-0.5 text-xs text-slate-500 font-medium">
-                Configure, rename, reorder, and assign academic subject papers for each class in the examination system.
+                Official single-record class curriculum mapping. Duplicate entries (Class 10, Class 8, Class 12A, Class 12B, Class 12C) have been consolidated.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            {hasDuplicateRows && (
+              <button
+                type="button"
+                onClick={handleConsolidateDuplicates}
+                className="flex items-center gap-1.5 rounded-xl bg-purple-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-purple-700 transition"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                <span>Consolidate to Single Records</span>
+              </button>
+            )}
             {onSaveToDatabase && (
               <button
                 type="button"
+                id="sync-subjects-database-btn"
                 onClick={onSaveToDatabase}
-                className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 transition"
+                disabled={isSyncing}
+                title={hasUnsavedChanges ? 'Changes detected in subjects. Click to save to Google Sheet database.' : (lastUpdatedTime ? `Subjects up to date. Last saved at ${lastUpdatedTime}` : 'Save subjects to database')}
+                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition shadow-sm active:scale-95 disabled:opacity-60 cursor-pointer ${
+                  hasUnsavedChanges
+                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-rose-200 animate-pulse'
+                    : 'border border-slate-200 bg-slate-50 hover:bg-white text-slate-700 shadow-2xs'
+                }`}
               >
-                <span>Save to Database</span>
+                {hasUnsavedChanges ? (
+                  <>
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                    </span>
+                    <span>{isSyncing ? 'Saving Subjects...' : 'Save to Database (Update Needed)'}</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>{isSyncing ? 'Saving...' : lastUpdatedTime ? `Saved (${lastUpdatedTime})` : 'Save to Database'}</span>
+                  </>
+                )}
               </button>
             )}
           </div>
@@ -179,49 +271,159 @@ export const SubjectsManager: React.FC<SubjectsManagerProps> = ({
 
         {/* Feedback Banner */}
         {feedbackMessage && (
-          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-800 animate-fadeIn">
-            {feedbackMessage}
+          <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-800 animate-fadeIn flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span>{feedbackMessage}</span>
           </div>
         )}
 
-        {/* Class Selection Tabs */}
-        <div className="mt-6 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-5">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-2">
-            Select Class:
+        {/* Notice if duplicates were found */}
+        {hasDuplicateRows && (
+          <div className="mt-4 flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs">
+            <div className="flex items-center gap-2 text-amber-900 font-medium">
+              <span className="font-bold">Duplicate Rows Detected:</span>
+              <span>Redundant alias rows ("Class 10", "Class 8", "Class 12A", "Class 12B", "Class 12C") are present. Click below to clean them instantly.</span>
+            </div>
+            <button
+              type="button"
+              onClick={handleConsolidateDuplicates}
+              className="rounded-lg bg-amber-600 px-3 py-1.5 font-bold text-white shadow-xs hover:bg-amber-700 transition shrink-0 ml-3"
+            >
+              Clean Duplicates Now
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Primary Subject Area Master Table (Single Records per Class) */}
+      <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-100 text-purple-700">
+              <Table className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-slate-900 tracking-tight">
+                Subject Area Curriculum Table
+              </h3>
+              <p className="text-xs text-slate-500">
+                Consolidated single records without duplicates. Click any row to view and configure its subjects.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+            {displayClasses.length} Unique Classes
           </span>
-          {ORDERED_CLASSES.map((c) => {
-            const isSelected = selectedClass === c;
-            const subCount = (subjectsMap[c] || []).length;
-            return (
-              <button
-                key={c}
-                type="button"
-                id={`subject-class-tab-${c}`}
-                onClick={() => {
-                  setSelectedClass(c);
-                  setEditingSubjectIndex(null);
-                }}
-                className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
-                  isSelected
-                    ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-400'
-                    : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-                }`}
-              >
-                <span>Class {c}</span>
-                <span
-                  className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono font-bold ${
-                    isSelected ? 'bg-purple-700 text-white' : 'bg-slate-200 text-slate-600'
-                  }`}
-                >
-                  {subCount}
-                </span>
-              </button>
-            );
-          })}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-black uppercase tracking-wider text-slate-600">
+                <th className="py-3 px-4 rounded-l-xl">Class</th>
+                <th className="py-3 px-4 text-center">Subject Count</th>
+                <th className="py-3 px-4">Subjects</th>
+                <th className="py-3 px-4 text-right rounded-r-xl">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs">
+              {displayClasses.map((cls) => {
+                const list = cleanSubjectsMap[cls] || [];
+                const isSelected = selectedClass === cls;
+
+                return (
+                  <tr
+                    key={cls}
+                    onClick={() => {
+                      setSelectedClass(cls);
+                      setEditingSubjectIndex(null);
+                    }}
+                    className={`cursor-pointer transition hover:bg-purple-50/40 ${
+                      isSelected ? 'bg-purple-50/80 font-medium' : ''
+                    }`}
+                  >
+                    <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
+                      <span>{cls.toLowerCase().startsWith('class') ? cls : `Class ${cls}`}</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      <span className="inline-block rounded-full bg-purple-100 px-3 py-1 font-mono text-xs font-black text-purple-800">
+                        {list.length}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-700">
+                      <div className="flex flex-wrap gap-1.5 max-w-2xl">
+                        {list.map((sub) => (
+                          <span
+                            key={sub}
+                            className="inline-flex items-center rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-800 border border-slate-200/60"
+                          >
+                            {sub}
+                          </span>
+                        ))}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedClass(cls);
+                          setEditingSubjectIndex(null);
+                        }}
+                        className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
+                          isSelected
+                            ? 'bg-purple-600 text-white shadow-xs'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {isSelected ? 'Editing' : 'Edit Subjects'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Main Subject Editor Grid */}
+      {/* Class Selection Tabs for quick navigation */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-2">
+          Active Class Editor:
+        </span>
+        {displayClasses.map((c) => {
+          const isSelected = selectedClass === c;
+          const subCount = (cleanSubjectsMap[c] || []).length;
+          return (
+            <button
+              key={c}
+              type="button"
+              id={`subject-class-tab-${c}`}
+              onClick={() => {
+                setSelectedClass(c);
+                setEditingSubjectIndex(null);
+              }}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition ${
+                isSelected
+                  ? 'bg-purple-600 text-white shadow-md ring-2 ring-purple-400'
+                  : 'bg-white text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-slate-200'
+              }`}
+            >
+              <span>Class {c}</span>
+              <span
+                className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono font-bold ${
+                  isSelected ? 'bg-purple-700 text-white' : 'bg-slate-100 text-slate-600'
+                }`}
+              >
+                {subCount}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Main Subject Editor Grid for Selected Class */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Editable List of Subjects for Selected Class */}
         <div className="lg:col-span-2 space-y-4">
@@ -232,12 +434,12 @@ export const SubjectsManager: React.FC<SubjectsManagerProps> = ({
                   Class {selectedClass} Subject Papers ({currentClassSubjects.length})
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Drag / reorder, rename inline, or remove subjects for Class {selectedClass}.
+                  Reorder, rename inline, or remove subjects for Class {selectedClass}.
                 </p>
               </div>
 
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-700">
-                RBSE Format
+                RBSE Standard
               </span>
             </div>
 
@@ -402,43 +604,6 @@ export const SubjectsManager: React.FC<SubjectsManagerProps> = ({
                   >
                     + {p}
                   </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* All Classes Overview Box */}
-          <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs">
-            <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-              <Layers className="h-4 w-4 text-slate-700" />
-              <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
-                Curriculum at a Glance
-              </h3>
-            </div>
-
-            <div className="mt-3 space-y-2.5">
-              {ORDERED_CLASSES.map((c) => {
-                const list = subjectsMap[c] || [];
-                return (
-                  <div
-                    key={c}
-                    onClick={() => setSelectedClass(c)}
-                    className={`cursor-pointer rounded-xl p-2.5 text-xs transition border ${
-                      selectedClass === c
-                        ? 'bg-purple-50/50 border-purple-200'
-                        : 'bg-slate-50/50 border-slate-100 hover:bg-slate-100'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-bold text-slate-900">
-                      <span>Class {c}</span>
-                      <span className="text-[10px] font-mono text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
-                        {list.length} Subjects
-                      </span>
-                    </div>
-                    <div className="mt-1 text-[11px] text-slate-500 truncate">
-                      {list.join(', ')}
-                    </div>
-                  </div>
                 );
               })}
             </div>
