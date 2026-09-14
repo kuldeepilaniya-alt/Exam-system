@@ -551,7 +551,7 @@ export default function App() {
               <span>Reset Sample Data</span>
             </button>
             <span className="text-slate-300 dark:text-slate-700">|</span>
-            <span>Developed by Kuldeep Sir</span>
+            <span>Developed by Narendra Kumar Class XI Student</span>
           </div>
         </div>
       </footer>
