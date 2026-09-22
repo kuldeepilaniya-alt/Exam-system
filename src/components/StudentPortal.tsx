@@ -240,7 +240,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
 
             {/* Quick Sample Roll Numbers */}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5 text-xs text-slate-500">
-              <span className="font-semibold text-slate-400 mr-1">Classwise Roll Nos:</span>
+              <span className="font-semibold text-slate-400 mr-1">Classwise Students Roll No:</span>
               {[
                 { roll: '501', label: '501 (Class 5)' },
                 { roll: '801', label: '801 (Class 8)' },
