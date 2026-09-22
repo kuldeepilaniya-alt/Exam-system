@@ -224,7 +224,7 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                   id="student-roll-input"
                   value={rollNumberInput}
                   onChange={(e) => setRollNumberInput(e.target.value)}
-                  placeholder="Enter Roll Number (e.g. 801, 802, 1001, 1401)"
+                  placeholder="Enter Roll Number (e.g. 501, 801, 1001, 12101)"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 text-sm font-semibold text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:outline-hidden transition-all"
                 />
               </div>
