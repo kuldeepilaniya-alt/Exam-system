@@ -240,15 +240,14 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
 
             {/* Quick Sample Roll Numbers */}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-1.5 text-xs text-slate-500">
-              <span className="font-semibold text-slate-400 mr-1">Sample Roll Nos:</span>
+              <span className="font-semibold text-slate-400 mr-1">Classwise Roll Nos:</span>
               {[
+                { roll: '501', label: '501 (Class 5)' },
                 { roll: '801', label: '801 (Class 8)' },
-                { roll: '802', label: '802 (Class 8)' },
                 { roll: '1001', label: '1001 (Class 10)' },
-                { roll: '1401', label: '1401 (12A Sci)' },
-                { roll: '1402', label: '1402 (12A Sci)' },
-                { roll: '1501', label: '1501 (12B Agri)' },
-                { roll: '1601', label: '1601 (12C Arts)' },
+                { roll: '12101', label: '12101 (12A Sci)' },
+                { roll: '12201', label: '12201 (12B Agri)' },
+                { roll: '12301', label: '12301 (12C Arts)' },
               ].map((item) => (
                 <button
                   key={item.roll}
