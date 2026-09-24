@@ -82,7 +82,7 @@ export function formatStudentMarksheetWhatsAppMessage(
     `• *Total Marks:* ${result.totalObtainedMarks} / ${result.totalMaxMarks}\n` +
     `• *Percentage:* ${result.percentage}%\n` +
     `• *Class Rank:* #${result.rank} (out of ${result.totalStudentsInClass} students)\n` +
-    `• *Status:* ${result.status === 'PASSED' ? '✅ PASSED' : '⚠️ NEEDS IMPROVEMENT'}\n` +
+    `• *Status:* ${result.status === 'PASS' || result.status === 'PASSED' ? '✅ PASS' : result.status === 'GRACE' || result.status === 'COMPARTMENT' ? '⚠️ GRACE' : '❌ FAIL'}\n` +
     `• *Teacher Remarks:* "${result.remarks}"\n` +
     `───────────────────────\n` +
     `📄 _Attached: 2-Page Official Marksheet & Term Progression PDF Document_\n` +

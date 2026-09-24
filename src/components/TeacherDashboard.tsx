@@ -490,7 +490,7 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
     const totalPct = rankedStudents.reduce((acc, curr) => acc + curr.percentage, 0);
     const avg = Number((totalPct / total).toFixed(1));
     const topper = rankedStudents[0]; // first is highest total
-    const passedCount = rankedStudents.filter((s) => s.status === 'PASSED').length;
+    const passedCount = rankedStudents.filter((s) => s.status === 'PASS' || s.status === 'PASSED').length;
     const passRate = Number(((passedCount / total) * 100).toFixed(1));
 
     return { total, avg, topper, passRate, passedCount };
@@ -1614,20 +1614,24 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
             {summaryMetrics.passRate}%
           </div>
           <p className="mt-1 text-[11px] text-slate-400">
-            {summaryMetrics.passedCount} of {summaryMetrics.total} passed
+            {summaryMetrics.passedCount} of {summaryMetrics.total} PASS
           </p>
         </div>
       </div>
 
       {/* Class Merit List Table Header (Print Only) */}
-      <div className="hidden print:block text-center mb-6">
-        <h2 className="text-xl font-bold uppercase">{SCHOOL_INFO.name}</h2>
-        <p className="text-xs text-slate-600">CLASS EXAMINATION MERIT LIST &amp; RANK STATEMENT</p>
-        <div className="mt-1 text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+      <div className="hidden print:block text-center mb-4">
+        <h2 className="text-lg font-bold uppercase">{SCHOOL_INFO.name}</h2>
+        <p className="text-xs text-slate-600 font-semibold">CLASS EXAMINATION MERIT LIST &amp; RANK STATEMENT</p>
+        <div className="mt-1 text-[9px] text-slate-500 font-bold uppercase tracking-wider">
           {classTeacherName ? `Class Teacher: ${classTeacherName} • ` : ''}Principal: {SCHOOL_INFO.principal.toUpperCase()}
         </div>
-        <div className="mt-3 text-sm font-semibold">
-          Class: {selectedClass} • Exam: {activeExam?.examName} • Date: {activeExam?.date}
+        <div className="mt-2 text-xs font-bold text-slate-800 border-y border-slate-300 py-1 flex justify-between px-2">
+          <span>Class: {selectedClass}</span>
+          <span>Exam: {activeExam?.examName}</span>
+          <span>Date: {activeExam?.date}</span>
+          <span>Total Students: {displayedStudents.length}</span>
+          <span>Pass: {summaryMetrics.passedCount}</span>
         </div>
       </div>
 
@@ -1958,8 +1962,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
         </div>
       ) : (
         /* Class Rankings Table */
-        <div className="mt-4 overflow-hidden print:overflow-visible print:border-none print:shadow-none rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
-        <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-4 flex items-center justify-between">
+        <div id="class-report-print-container" className="mt-4 overflow-hidden print:overflow-visible print:border-none print:shadow-none print:m-0 print:p-0 rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
+        <div className="border-b border-slate-200 bg-slate-50/70 px-6 py-4 flex items-center justify-between print:hidden">
           <div className="flex items-center gap-2">
             <Award className="h-5 w-5 text-blue-600" />
             <h3 className="font-extrabold text-slate-900 tracking-tight">
@@ -1975,22 +1979,22 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
           </div>
         </div>
 
-        <div className="overflow-x-auto print:overflow-visible">
-          <table className="w-full text-left text-sm">
+        <div className="overflow-x-auto print:overflow-visible print:w-full">
+          <table id="class-report-table" className="w-full text-left text-sm print:text-[7.5pt] print:border-collapse">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                <th className="py-3.5 px-4 text-center">Rank</th>
-                <th className="py-3.5 px-3">Roll No</th>
-                <th className="py-3.5 px-4">Student Name</th>
-                <th className="py-3.5 px-3 hidden lg:table-cell print:table-cell">Father Name</th>
+              <tr className="border-b border-slate-200 bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 print:text-[7pt] print:bg-slate-100">
+                <th className="py-3.5 px-4 text-center print:py-1 print:px-1 print:w-6">Rank</th>
+                <th className="py-3.5 px-3 print:py-1 print:px-1.5 print:w-11">Roll No</th>
+                <th className="py-3.5 px-4 print:py-1 print:px-1.5">Student Name</th>
+                <th className="py-3.5 px-3 hidden lg:table-cell print:table-cell print:py-1 print:px-1.5">Father Name</th>
                 {subjects.map((sub) => (
-                  <th key={sub} className="py-3.5 px-2.5 text-center font-bold">
+                  <th key={sub} className="py-3.5 px-2.5 text-center font-bold print:py-1 print:px-1 print:text-[7pt]">
                     {sub}
                   </th>
                 ))}
-                <th className="py-3.5 px-3 text-center">Total</th>
-                <th className="py-3.5 px-3 text-center">%</th>
-                <th className="py-3.5 px-3 text-center">Status</th>
+                <th className="py-3.5 px-3 text-center print:py-1 print:px-1 print:w-11">Total</th>
+                <th className="py-3.5 px-3 text-center print:py-1 print:px-1 print:w-9">%</th>
+                <th className="py-3.5 px-3 text-center print:py-1 print:px-1 print:w-12">Status</th>
                 <th className="py-3.5 px-4 text-right print:hidden">Actions</th>
               </tr>
             </thead>
@@ -2009,44 +2013,49 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       className="hover:bg-slate-50/80 transition"
                     >
                       {/* Rank Badge */}
-                      <td className="py-3.5 px-4 text-center">
-                        {row.rank === 1 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-400 font-black text-amber-950 shadow-xs ring-2 ring-amber-200">
-                            1
-                          </span>
-                        ) : row.rank === 2 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 font-black text-slate-800 shadow-xs ring-2 ring-slate-300">
-                            2
-                          </span>
-                        ) : row.rank === 3 ? (
-                          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-700 font-black text-white shadow-xs ring-2 ring-amber-600/30">
-                            3
-                          </span>
-                        ) : (
-                          <span className="font-mono font-bold text-slate-500">
-                            #{row.rank}
-                          </span>
-                        )}
+                      <td className="py-3.5 px-4 text-center print:py-1 print:px-1 print:text-[7.5pt]">
+                        <span className="print:hidden">
+                          {row.rank === 1 ? (
+                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-400 font-black text-amber-950 shadow-xs ring-2 ring-amber-200">
+                              1
+                            </span>
+                          ) : row.rank === 2 ? (
+                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-200 font-black text-slate-800 shadow-xs ring-2 ring-slate-300">
+                              2
+                            </span>
+                          ) : row.rank === 3 ? (
+                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-700 font-black text-white shadow-xs ring-2 ring-amber-600/30">
+                              3
+                            </span>
+                          ) : (
+                            <span className="font-mono font-bold text-slate-500">
+                              #{row.rank}
+                            </span>
+                          )}
+                        </span>
+                        <span className="hidden print:inline font-bold text-slate-900">
+                          {row.rank}
+                        </span>
                       </td>
 
                       {/* Roll No */}
-                      <td className="py-3.5 px-3 font-mono font-bold text-blue-600">
+                      <td className="py-3.5 px-3 font-mono font-bold text-blue-600 print:py-1 print:px-1.5 print:text-[7.5pt] print:text-slate-900">
                         {row.rollNo}
                       </td>
 
                       {/* Name */}
-                      <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap">
+                      <td className="py-3.5 px-4 font-bold text-slate-900 whitespace-nowrap print:whitespace-normal print:py-1 print:px-1.5 print:text-[7.5pt]">
                         {row.name}
                         {row.rank === 1 && (
-                          <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black uppercase text-amber-800">
+                          <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-black uppercase text-amber-800 print:hidden">
                             Topper
                           </span>
                         )}
                       </td>
 
                       {/* Father Name */}
-                      <td className="py-3.5 px-3 text-xs font-medium text-slate-500 hidden lg:table-cell print:table-cell whitespace-nowrap">
-                        {row.fatherName}
+                      <td className="py-3.5 px-3 text-xs font-medium text-slate-500 hidden lg:table-cell print:table-cell whitespace-nowrap print:whitespace-normal print:py-1 print:px-1.5 print:text-[7.5pt] print:text-slate-700">
+                        {row.fatherName || '-'}
                       </td>
 
                       {/* Subject Marks */}
@@ -2056,8 +2065,8 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                         return (
                           <td
                             key={sub}
-                            className={`py-3.5 px-2.5 text-center font-mono text-xs ${
-                              !isPassing ? 'font-bold text-rose-600' : 'font-medium text-slate-700'
+                            className={`py-3.5 px-2.5 text-center font-mono text-xs print:py-1 print:px-1 print:text-[7pt] ${
+                              !isPassing ? 'font-bold text-rose-600' : 'font-medium text-slate-700 print:text-slate-900'
                             }`}
                           >
                             {markVal !== undefined ? markVal : '-'}
@@ -2066,30 +2075,28 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
                       })}
 
                       {/* Total Marks */}
-                      <td className="py-3.5 px-3 text-center font-mono font-extrabold text-slate-900">
+                      <td className="py-3.5 px-3 text-center font-mono font-extrabold text-slate-900 print:py-1 print:px-1 print:text-[7.5pt]">
                         {row.totalObtained}
-                        <span className="text-[10px] font-normal text-slate-400">/{row.totalMax}</span>
+                        <span className="text-[10px] font-normal text-slate-400 print:hidden">/{row.totalMax}</span>
                       </td>
 
                       {/* Percentage */}
-                      <td className="py-3.5 px-3 text-center font-mono font-extrabold text-emerald-600">
+                      <td className="py-3.5 px-3 text-center font-mono font-extrabold text-emerald-600 print:py-1 print:px-1 print:text-[7.5pt] print:text-slate-900">
                         {row.percentage}%
                       </td>
 
-                     
-
                       {/* Status */}
-                      <td className="py-3.5 px-3 text-center">
+                      <td className="py-3.5 px-3 text-center print:py-1 print:px-1">
                         <span
-                          className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-black uppercase tracking-tight ${
-                            row.status === 'PASSED'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : row.status === 'COMPARTMENT'
-                              ? 'bg-amber-100 text-amber-800'
-                              : 'bg-rose-100 text-rose-800'
+                          className={`inline-block rounded-md px-2 py-0.5 text-[11px] font-black uppercase tracking-tight print:text-[6.5pt] print:px-1 print:py-0 print:border ${
+                            row.status === 'PASS' || row.status === 'PASSED'
+                              ? 'bg-emerald-100 text-emerald-800 print:border-emerald-300'
+                              : row.status === 'GRACE' || row.status === 'COMPARTMENT'
+                              ? 'bg-amber-100 text-amber-800 print:border-amber-300'
+                              : 'bg-rose-100 text-rose-800 print:border-rose-300'
                           }`}
                         >
-                          {row.status}
+                          {row.status === 'PASSED' ? 'PASS' : row.status === 'COMPARTMENT' ? 'GRACE' : row.status === 'FAILED' ? 'FAIL' : row.status}
                         </span>
                       </td>
 
@@ -2138,6 +2145,28 @@ export const TeacherDashboard: React.FC<TeacherDashboardProps> = ({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Formal Signature Footer (Print Only) */}
+        <div className="hidden print:grid grid-cols-3 gap-6 text-center pt-8 mt-6 border-t border-slate-300 break-inside-avoid">
+          <div className="flex flex-col items-center">
+            <div className="h-8 w-44 border-b border-dashed border-slate-400 flex items-end justify-center pb-1">
+              <span className="font-serif italic text-xs text-slate-700">{classTeacherName || 'Class Teacher'}</span>
+            </div>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-1">Class Teacher</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className="h-8 w-44 border-b border-dashed border-slate-400 flex items-end justify-center pb-1">
+              <span className="font-serif italic text-xs text-slate-700">Kapil Dev Sir</span>
+            </div>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-1">Examination In-Charge</span>
+          </div>
+          <div className="flex flex-col items-center">
+            <div className="h-8 w-44 border-b border-dashed border-slate-400 flex items-end justify-center pb-1">
+              <span className="font-serif italic text-xs text-blue-700 font-bold">{SCHOOL_INFO.principal}</span>
+            </div>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-1">Principal (Attestation)</span>
+          </div>
         </div>
       </div>
       )}

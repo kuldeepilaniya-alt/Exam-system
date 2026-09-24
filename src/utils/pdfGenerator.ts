@@ -121,9 +121,9 @@ export async function generateStudentMarksheetPDF(
           <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Result Status</div>
           <div style="margin-top: 4px; display: flex; align-items: center; justify-content: center;">
             <span style="display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 14px;  font-size: 11px; font-weight: 800; text-transform: uppercase; line-height: 1; vertical-align: middle; line-height: 1.5; color: ${
-              currentResult.isUpcoming ? '#92400e' : currentResult.status === 'PASSED' ? '#166534' : '#991b1b'
+              currentResult.isUpcoming ? '#92400e' : currentResult.status === 'PASS' || currentResult.status === 'PASSED' ? '#166534' : currentResult.status === 'GRACE' || currentResult.status === 'COMPARTMENT' ? '#d97706' : '#991b1b'
             };">
-              ${currentResult.isUpcoming ? 'Upcoming' : currentResult.status}
+              ${currentResult.isUpcoming ? 'Upcoming' : currentResult.status === 'PASSED' ? 'PASS' : currentResult.status === 'COMPARTMENT' ? 'GRACE' : currentResult.status === 'FAILED' ? 'FAIL' : currentResult.status}
             </span>
           </div>
         </div>
@@ -168,9 +168,9 @@ export async function generateStudentMarksheetPDF(
             <td style="padding: 10px 10px; text-align: center; vertical-align: middle; line-height: 1.5; font-weight: 700; color: #2563eb; font-size: 13px; border: 1px solid #cbd5e1;">${currentResult.isUpcoming ? '-' : currentResult.totalObtainedMarks}</td>
             <td style="padding: 10px 10px; text-align: center; vertical-align: middle; line-height: 1.5; font-weight: 700; color: #059669; font-size: 13px; border: 1px solid #cbd5e1;">${currentResult.isUpcoming ? '-' : `${currentResult.percentage}%`}</td>
             <td style="padding: 10px 12px; text-align: right; vertical-align: middle; line-height: 1.5; color: ${
-              currentResult.isUpcoming ? '#92400e' : currentResult.status === 'PASSED' ? '#16a34a' : '#dc2626'
+              currentResult.isUpcoming ? '#92400e' : currentResult.status === 'PASS' || currentResult.status === 'PASSED' ? '#16a34a' : currentResult.status === 'GRACE' || currentResult.status === 'COMPARTMENT' ? '#d97706' : '#dc2626'
             }; border: 1px solid #cbd5e1;">
-              ${currentResult.isUpcoming ? 'Upcoming' : currentResult.status}
+              ${currentResult.isUpcoming ? 'Upcoming' : currentResult.status === 'PASSED' ? 'PASS' : currentResult.status === 'COMPARTMENT' ? 'GRACE' : currentResult.status === 'FAILED' ? 'FAIL' : currentResult.status}
             </td>
           </tr>
         </tfoot>
@@ -303,9 +303,9 @@ export async function generateStudentMarksheetPDF(
                 <td style="padding: 10px 6px; text-align: center; font-weight: 700; font-weight: 800; color: #059669; border: 1px solid #cbd5e1;">${res.isUpcoming ? '-' : `${res.percentage}%`}</td>
                 <td style="padding: 10px 6px; text-align: center; font-weight: 700; font-weight: 800; color: #0f172a; border: 1px solid #cbd5e1;">${res.isUpcoming ? 'Upcoming' : `#${res.rank}/${res.totalStudentsInClass}`}</td>
                 <td style="padding: 10px 6px; text-align: right; font-weight: 800; color: ${
-                  res.isUpcoming ? '#92400e' : res.status === 'PASSED' ? '#16a34a' : '#dc2626'
+                  res.isUpcoming ? '#92400e' : res.status === 'PASS' || res.status === 'PASSED' ? '#16a34a' : res.status === 'GRACE' || res.status === 'COMPARTMENT' ? '#d97706' : '#dc2626'
                 }; border: 1px solid #cbd5e1;">
-                  ${res.isUpcoming ? 'UPCOMING' : res.status}
+                  ${res.isUpcoming ? 'UPCOMING' : res.status === 'PASSED' ? 'PASS' : res.status === 'COMPARTMENT' ? 'GRACE' : res.status === 'FAILED' ? 'FAIL' : res.status}
                 </td>
               </tr>
             `
@@ -504,55 +504,55 @@ export async function generateMeritListPDF(
   container.style.width = '794px';
   container.style.backgroundColor = '#ffffff';
   container.style.fontFamily = "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
-  container.style.padding = '36px 40px';
+  container.style.padding = '24px 20px';
   container.style.boxSizing = 'border-box';
   container.style.color = '#0f172a';
 
   container.innerHTML = `
-    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-      <h1 style="font-size: 18px; font-weight: 800; text-transform: uppercase; margin: 0; color: #0f172a; line-height: 1.2; text-align: center;">
+    <div style="text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+      <h1 style="font-size: 17px; font-weight: 800; text-transform: uppercase; margin: 0; color: #0f172a; line-height: 1.2; text-align: center;">
         ${SCHOOL_INFO.name}
       </h1>
-      <p style="font-size: 10px; font-weight: 700; color: #475569; text-transform: uppercase; margin: 3px 0 0 0; line-height: 1.2; text-align: center;">
+      <p style="font-size: 9.5px; font-weight: 700; color: #475569; text-transform: uppercase; margin: 3px 0 0 0; line-height: 1.2; text-align: center;">
         Affiliated to Board of Secondary Education, Rajasthan (RBSE)
       </p>
-      <div style="margin-top: 8px; display: inline-flex; align-items: center; justify-content: center; height: 26px; line-height: 1; vertical-align: middle; line-height: 1.5; color: #0f172a; padding: 0; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; text-align: center;">
+      <div style="margin-top: 6px; display: inline-flex; align-items: center; justify-content: center; height: 24px; line-height: 1.4; vertical-align: middle; color: #0f172a; padding: 0; font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; text-align: center;">
         OFFICIAL CLASS MERIT LIST — ${className} • ${examName.toUpperCase()}
       </div>
     </div>
 
     <!-- Summary Metrics Box -->
-    <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #cbd5e1;  background-color: #f8fafc; margin-bottom: 16px; overflow: hidden; text-align: center;">
-      <div style="padding: 10px; border-right: 1px solid #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Total Students</div>
-        <div style="font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 2px; line-height: 1.2;">${summaryMetrics.total}</div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid #cbd5e1;  background-color: #f8fafc; margin-bottom: 14px; overflow: hidden; text-align: center;">
+      <div style="padding: 8px; border-right: 1px solid #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div style="font-size: 8.5px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Total Students</div>
+        <div style="font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 2px; line-height: 1.2;">${summaryMetrics.total}</div>
       </div>
-      <div style="padding: 10px; border-right: 1px solid #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Class Average</div>
-        <div style="font-size: 16px; font-weight: 800; color: #2563eb; margin-top: 2px; line-height: 1.2;">${summaryMetrics.avg}%</div>
+      <div style="padding: 8px; border-right: 1px solid #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div style="font-size: 8.5px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Class Average</div>
+        <div style="font-size: 15px; font-weight: 800; color: #2563eb; margin-top: 2px; line-height: 1.2;">${summaryMetrics.avg}%</div>
       </div>
-      <div style="padding: 10px; border-right: 1px solid #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Class Topper</div>
-        <div style="font-size: 13px; font-weight: 800; color: #d97706; margin-top: 2px; line-height: 1.2;">${summaryMetrics.topper?.name || 'N/A'}</div>
+      <div style="padding: 8px; border-right: 1px solid #cbd5e1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div style="font-size: 8.5px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Class Topper</div>
+        <div style="font-size: 12px; font-weight: 800; color: #d97706; margin-top: 2px; line-height: 1.2;">${summaryMetrics.topper?.name || 'N/A'}</div>
       </div>
-      <div style="padding: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-        <div style="font-size: 9px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Pass Percentage</div>
-        <div style="font-size: 16px; font-weight: 800; color: #16a34a; margin-top: 2px; line-height: 1.2;">${summaryMetrics.passRate}%</div>
+      <div style="padding: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+        <div style="font-size: 8.5px; font-weight: 800; color: #64748b; text-transform: uppercase; line-height: 1.2;">Pass Rate</div>
+        <div style="font-size: 15px; font-weight: 800; color: #16a34a; margin-top: 2px; line-height: 1.2;">${summaryMetrics.passRate}%</div>
       </div>
     </div>
 
     <!-- Merit Table -->
-    <table style="width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 20px;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 8.5px; margin-bottom: 16px; table-layout: auto;">
       <thead>
-        <tr style="background-color: #f1f5f9; border-top: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; text-transform: uppercase; font-size: 9px; font-weight: 800; color: #475569;">
-          <th style="padding: 10px 6px; text-align: center; vertical-align: middle; line-height: 1.5; line-height: 1.2; width: 40px; border: 1px solid #cbd5e1;">Rank</th>
-          <th style="padding: 10px 8px; text-align: center; vertical-align: middle; line-height: 1.5; line-height: 1.2; width: 55px; border: 1px solid #cbd5e1;">Roll</th>
-          <th style="padding: 10px 10px; text-align: left; vertical-align: middle; line-height: 1.5; line-height: 1.2; border: 1px solid #cbd5e1;">Student Name</th>
-          <th style="padding: 10px 10px; text-align: left; vertical-align: middle; line-height: 1.5; line-height: 1.2; border: 1px solid #cbd5e1;">Father's Name</th>
-          ${subjects.map((s) => `<th style="padding: 10px 6px; text-align: center; vertical-align: middle; line-height: 1.5; line-height: 1.2; border: 1px solid #cbd5e1;">${s}</th>`).join('')}
-          <th style="padding: 10px 8px; text-align: center; vertical-align: middle; line-height: 1.5; line-height: 1.2; border: 1px solid #cbd5e1; width: 55px;">Total</th>
-          <th style="padding: 10px 8px; text-align: center; vertical-align: middle; line-height: 1.5; line-height: 1.2; border: 1px solid #cbd5e1; width: 55px;">%</th>
-          <th style="padding: 10px 8px; text-align: right; vertical-align: middle; line-height: 1.5; line-height: 1.2; border: 1px solid #cbd5e1; width: 60px;">Status</th>
+        <tr style="background-color: #f1f5f9; border-top: 1px solid #cbd5e1; border-bottom: 2px solid #94a3b8; text-transform: uppercase; font-size: 8px; font-weight: 800; color: #475569;">
+          <th style="padding: 6px 3px; text-align: center; vertical-align: middle; line-height: 1.2; width: 30px; border: 1px solid #cbd5e1;">Rank</th>
+          <th style="padding: 6px 4px; text-align: center; vertical-align: middle; line-height: 1.2; width: 42px; border: 1px solid #cbd5e1;">Roll</th>
+          <th style="padding: 6px 6px; text-align: left; vertical-align: middle; line-height: 1.2; border: 1px solid #cbd5e1;">Student Name</th>
+          <th style="padding: 6px 6px; text-align: left; vertical-align: middle; line-height: 1.2; border: 1px solid #cbd5e1;">Father's Name</th>
+          ${subjects.map((s) => `<th style="padding: 6px 3px; text-align: center; vertical-align: middle; line-height: 1.2; border: 1px solid #cbd5e1;">${s}</th>`).join('')}
+          <th style="padding: 6px 4px; text-align: center; vertical-align: middle; line-height: 1.2; border: 1px solid #cbd5e1; width: 42px;">Total</th>
+          <th style="padding: 6px 4px; text-align: center; vertical-align: middle; line-height: 1.2; border: 1px solid #cbd5e1; width: 40px;">%</th>
+          <th style="padding: 6px 4px; text-align: center; vertical-align: middle; line-height: 1.2; border: 1px solid #cbd5e1; width: 48px;">Status</th>
         </tr>
       </thead>
       <tbody>
@@ -560,23 +560,23 @@ export async function generateMeritListPDF(
           .map(
             (row, idx) => `
           <tr style="border-bottom: 1px solid #e2e8f0; background-color: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'};">
-            <td style="padding: 10px 6px; text-align: center; vertical-align: middle; line-height: 1.5; line-height: 1.2; font-weight: 800; color: ${
+            <td style="padding: 5px 3px; text-align: center; vertical-align: middle; line-height: 1.2; font-weight: 800; color: ${
               row.rank === 1 ? '#d97706' : '#0f172a'
             }; border: 1px solid #cbd5e1;">${row.rank}</td>
-            <td style="padding: 10px 8px; text-align: center; vertical-align: middle; line-height: 1.5; line-height: 1.2; font-weight: 700; font-weight: 700; color: #2563eb; border: 1px solid #cbd5e1;">#${row.rollNo}</td>
-            <td style="padding: 10px 10px; text-align: left; vertical-align: middle; line-height: 1.5; line-height: 1.2; font-weight: 700; color: #0f172a; border: 1px solid #cbd5e1;">${row.name}</td>
-            <td style="padding: 10px 10px; text-align: left; vertical-align: middle; line-height: 1.5; line-height: 1.2; color: #475569; border: 1px solid #cbd5e1;">${row.fatherName || '-'}</td>
+            <td style="padding: 5px 4px; text-align: center; vertical-align: middle; line-height: 1.2; font-weight: 700; color: #2563eb; border: 1px solid #cbd5e1;">#${row.rollNo}</td>
+            <td style="padding: 5px 6px; text-align: left; vertical-align: middle; line-height: 1.2; font-weight: 700; color: #0f172a; border: 1px solid #cbd5e1;">${row.name}</td>
+            <td style="padding: 5px 6px; text-align: left; vertical-align: middle; line-height: 1.2; color: #475569; border: 1px solid #cbd5e1;">${row.fatherName || '-'}</td>
             ${subjects
               .map((s) => {
                 const score = row.subjectMarks[s] ?? 0;
-                return `<td style="padding: 10px 6px; text-align: center; vertical-align: middle; line-height: 1.5; line-height: 1.2; font-weight: 700; border: 1px solid #cbd5e1;">${score}</td>`;
+                return `<td style="padding: 5px 3px; text-align: center; vertical-align: middle; line-height: 1.2; font-weight: 700; border: 1px solid #cbd5e1;">${score}</td>`;
               })
               .join('')}
-            <td style="padding: 10px 8px; text-align: center; vertical-align: middle; line-height: 1.5; line-height: 1.2; font-weight: 700; font-weight: 800; color: #2563eb; border: 1px solid #cbd5e1;">${row.totalObtained}</td>
-            <td style="padding: 10px 8px; text-align: center; vertical-align: middle; line-height: 1.5; line-height: 1.2; font-weight: 700; font-weight: 800; color: #059669; border: 1px solid #cbd5e1;">${row.percentage}%</td>
-            <td style="padding: 10px 8px; text-align: right; vertical-align: middle; line-height: 1.5; line-height: 1.2; font-weight: 800; color: ${
-              row.status === 'PASSED' ? '#16a34a' : '#dc2626'
-            }; border: 1px solid #cbd5e1;">${row.status}</td>
+            <td style="padding: 5px 4px; text-align: center; vertical-align: middle; line-height: 1.2; font-weight: 800; color: #2563eb; border: 1px solid #cbd5e1;">${row.totalObtained}</td>
+            <td style="padding: 5px 4px; text-align: center; vertical-align: middle; line-height: 1.2; font-weight: 800; color: #059669; border: 1px solid #cbd5e1;">${row.percentage}%</td>
+            <td style="padding: 5px 4px; text-align: center; vertical-align: middle; line-height: 1.2; font-weight: 800; color: ${
+              row.status === 'PASS' || row.status === 'PASSED' ? '#16a34a' : row.status === 'GRACE' || row.status === 'COMPARTMENT' ? '#d97706' : '#dc2626'
+            }; border: 1px solid #cbd5e1;">${row.status === 'PASSED' ? 'PASS' : row.status === 'COMPARTMENT' ? 'GRACE' : row.status === 'FAILED' ? 'FAIL' : row.status}</td>
           </tr>
         `
           )

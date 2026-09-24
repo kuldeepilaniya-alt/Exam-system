@@ -90,11 +90,11 @@ export function calculateClassRanks(
     const percentage = totalMax > 0 ? Number(((totalObtained / totalMax) * 100).toFixed(2)) : 0;
     const grade = calculateGrade(percentage);
 
-    let status: 'PASSED' | 'FAILED' | 'COMPARTMENT' = 'PASSED';
+    let status: 'PASS' | 'GRACE' | 'FAIL' = 'PASS';
     if (failedCount === 1) {
-      status = 'COMPARTMENT';
+      status = 'GRACE';
     } else if (failedCount > 1) {
-      status = 'FAILED';
+      status = 'FAIL';
     }
 
     const isUpcoming = isExamUpcoming(exam, marksRecords);
@@ -208,11 +208,11 @@ export function getStudentExamResult(
   const overallGrade = calculateGrade(percentage);
 
   const failedSubjects = subjectResults.filter((s) => !s.isPassing).length;
-  let status: 'PASSED' | 'FAILED' | 'COMPARTMENT' = 'PASSED';
+  let status: 'PASS' | 'GRACE' | 'FAIL' = 'PASS';
   if (failedSubjects === 1) {
-    status = 'COMPARTMENT';
+    status = 'GRACE';
   } else if (failedSubjects > 1) {
-    status = 'FAILED';
+    status = 'FAIL';
   }
 
   const isUpcoming = isExamUpcoming(exam, marksRecords);

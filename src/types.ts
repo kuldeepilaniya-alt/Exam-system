@@ -61,7 +61,7 @@ export interface StudentExamResult {
   overallGrade: string;
   rank: number;
   totalStudentsInClass: number;
-  status: 'PASSED' | 'FAILED' | 'COMPARTMENT';
+  status: 'PASS' | 'GRACE' | 'FAIL' | 'PASSED' | 'FAILED' | 'COMPARTMENT';
   isUpcoming: boolean;
   remarks: string;
 }
@@ -76,7 +76,7 @@ export interface ClassRankRow {
   totalMax: number;
   percentage: number;
   grade: string;
-  status: 'PASSED' | 'FAILED' | 'COMPARTMENT';
+  status: 'PASS' | 'GRACE' | 'FAIL' | 'PASSED' | 'FAILED' | 'COMPARTMENT';
   isUpcoming?: boolean;
   remarks?: string;
 }

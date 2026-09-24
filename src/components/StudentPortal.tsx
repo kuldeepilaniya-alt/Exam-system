@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  AlertCircle,
   Award,
   Calendar,
   CheckCircle2,
@@ -484,15 +485,20 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                           <Clock className="h-3.5 w-3.5 text-amber-600" />
                           UPCOMING
                         </span>
-                      ) : currentResult.status === 'PASSED' ? (
+                      ) : currentResult.status === 'PASS' || currentResult.status === 'PASSED' ? (
                         <span className="inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-black text-emerald-800 uppercase tracking-tight">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                          PASSED
+                          PASS
+                        </span>
+                      ) : currentResult.status === 'GRACE' || currentResult.status === 'COMPARTMENT' ? (
+                        <span className="inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-black text-amber-800 uppercase tracking-tight">
+                          <AlertCircle className="h-3.5 w-3.5 text-amber-600" />
+                          GRACE
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 px-3.5 py-1 text-xs font-black text-rose-800 uppercase tracking-tight">
                           <XCircle className="h-3.5 w-3.5 text-rose-600" />
-                          {currentResult.status}
+                          FAIL
                         </span>
                       )}
                     </div>
@@ -548,11 +554,15 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                         <td className="py-3 px-4 text-center font-mono font-bold text-emerald-600">
                           {currentResult.isUpcoming ? <span className="text-slate-400 font-normal">-</span> : `${currentResult.percentage}%`}
                         </td>
-                        <td className="py-3 px-4 text-right font-extrabold text-emerald-600">
+                        <td className="py-3 px-4 text-right font-extrabold">
                           {currentResult.isUpcoming ? (
                             <span className="text-amber-800 font-extrabold">Upcoming</span>
+                          ) : currentResult.status === 'PASS' || currentResult.status === 'PASSED' ? (
+                            <span className="text-emerald-600 font-extrabold">PASS</span>
+                          ) : currentResult.status === 'GRACE' || currentResult.status === 'COMPARTMENT' ? (
+                            <span className="text-amber-600 font-extrabold">GRACE</span>
                           ) : (
-                            currentResult.status
+                            <span className="text-rose-600 font-extrabold">FAIL</span>
                           )}
                         </td>
                       </tr>
@@ -681,12 +691,22 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                               className={`rounded-md px-2 py-0.5 text-[10px] font-black uppercase ${
                                 res.isUpcoming
                                   ? 'bg-amber-100 text-amber-800'
-                                  : res.status === 'PASSED'
+                                  : res.status === 'PASS' || res.status === 'PASSED'
                                   ? 'bg-emerald-100 text-emerald-800'
+                                  : res.status === 'GRACE' || res.status === 'COMPARTMENT'
+                                  ? 'bg-amber-100 text-amber-800'
                                   : 'bg-rose-100 text-rose-800'
                               }`}
                             >
-                              {res.isUpcoming ? 'Upcoming' : res.status}
+                              {res.isUpcoming
+                                ? 'Upcoming'
+                                : res.status === 'PASSED'
+                                ? 'PASS'
+                                : res.status === 'COMPARTMENT'
+                                ? 'GRACE'
+                                : res.status === 'FAILED'
+                                ? 'FAIL'
+                                : res.status}
                             </span>
                           </div>
 
@@ -787,10 +807,12 @@ export const StudentPortal: React.FC<StudentPortalProps> = ({
                           <td className="py-2.5 px-3 text-right">
                             {res.isUpcoming ? (
                               <span className="text-amber-800 font-bold uppercase text-[10px]">Upcoming</span>
-                            ) : res.status === 'PASSED' ? (
-                              <span className="text-emerald-600 font-bold uppercase text-[10px]">PASSED</span>
+                            ) : res.status === 'PASS' || res.status === 'PASSED' ? (
+                              <span className="text-emerald-600 font-bold uppercase text-[10px]">PASS</span>
+                            ) : res.status === 'GRACE' || res.status === 'COMPARTMENT' ? (
+                              <span className="text-amber-600 font-bold uppercase text-[10px]">GRACE</span>
                             ) : (
-                              <span className="text-rose-600 font-bold uppercase text-[10px]">FAILED</span>
+                              <span className="text-rose-600 font-bold uppercase text-[10px]">FAIL</span>
                             )}
                           </td>
                         </tr>
