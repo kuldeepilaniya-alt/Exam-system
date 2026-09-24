@@ -549,8 +549,7 @@ export default function App() {
           <div>
             <span className="font-semibold text-slate-800 dark:text-slate-200">
               Govt. Sr. Sec. School, Sanwaloda Purohitan, Sikar
-            </span>{' '}
-            • Principal: Narendra Singh Chauhan
+            </span>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -563,7 +562,7 @@ export default function App() {
               <span>Reset Sample Data</span>
             </button>
             <span className="text-slate-300 dark:text-slate-700">|</span>
-            <span>Developed by Narendra Kumar Class XI Student</span>
+            <span>Developed by Narendra Kumar</span>
           </div>
         </div>
       </footer>
