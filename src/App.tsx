@@ -80,8 +80,20 @@ export default function App() {
   const [isAddSubjectOpen, setIsAddSubjectOpen] = useState(false);
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [isAddExamOpen, setIsAddExamOpen] = useState(false);
-  const [selectedStudentRoll, setSelectedStudentRoll] = useState<string | null>(null);
-  const [selectedExamIdToView, setSelectedExamIdToView] = useState<string | null>(null);
+  const [selectedStudentRoll, setSelectedStudentRoll] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('roll') || params.get('rollNo') || null;
+    }
+    return null;
+  });
+  const [selectedExamIdToView, setSelectedExamIdToView] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('exam') || params.get('examId') || null;
+    }
+    return null;
+  });
 
   // Initialize Firebase Auth listener for Google OAuth token
   useEffect(() => {

@@ -1,6 +1,40 @@
 import { ClassRankRow, StudentExamResult } from '../types';
-import { SCHOOL_INFO, getDisplayClassName } from '../data/mockDatabase';
+import { SCHOOL_INFO, getDisplayClassName, normalizeClassName } from '../data/mockDatabase';
 import { generateStudentMarksheetPDF } from './pdfGenerator';
+
+/**
+ * Returns ordinal string e.g. 1st, 2nd, 3rd, 4th, 11th, 21st
+ */
+export function getOrdinalRank(n: number): string {
+  if (!n || n <= 0) return '-';
+  const j = n % 10;
+  const k = n % 100;
+  if (j === 1 && k !== 11) {
+    return `${n}st`;
+  }
+  if (j === 2 && k !== 12) {
+    return `${n}nd`;
+  }
+  if (j === 3 && k !== 13) {
+    return `${n}rd`;
+  }
+  return `${n}th`;
+}
+
+/**
+ * Formats class name for WhatsApp display
+ * e.g., '12B' -> '12B (Agriculture)'
+ */
+export function getWhatsAppDisplayClassName(className: string): string {
+  const norm = normalizeClassName(className);
+  if (norm === '12B') return '12B (Agriculture)';
+  if (norm === '12A') return '12A (Science)';
+  if (norm === '12C') return '12C (Arts)';
+  if (norm === '10A') return '10A';
+  if (norm === '8A') return '8A';
+  if (norm === '5A') return '5A';
+  return getDisplayClassName(className).replace(/^Class\s+/i, '');
+}
 
 /**
  * Normalizes a phone number for WhatsApp wa.me links
@@ -23,36 +57,43 @@ export function normalizeWhatsAppNumber(phone: string): string {
 }
 
 /**
- * Formats a comprehensive, professional WhatsApp scorecard message for a student
+ * Formats student marksheet message matching standard WhatsApp notification format
  */
 export function formatStudentMarksheetWhatsAppMessage(
   result: StudentExamResult,
-  schoolName: string = SCHOOL_INFO.name
+  schoolName: string = SCHOOL_INFO.name,
+  customDownloadBaseUrl: string = 'https://exam-system-xi-lime.vercel.app/?roll='
 ): string {
   const { student, exam, subjects } = result;
-  const className = getDisplayClassName(student.className);
+  const displayClass = getDisplayClassName(student.className);
+  const studentRoll = student.rollNo.toString().trim();
+  const directRollUrl = customDownloadBaseUrl.endsWith('=')
+    ? `${customDownloadBaseUrl}${encodeURIComponent(studentRoll)}`
+    : customDownloadBaseUrl;
 
   if (result.isUpcoming) {
-    const subjectList = subjects.map((s) => `• *${s.name}*: (Max Marks: ${s.maxMarks})`).join('\n');
+    const subjectList = subjects
+      .map((s) => `• *${s.name}*: (Max Marks: ${s.maxMarks})`)
+      .join('\n');
 
     return (
       `🏫 *${schoolName.toUpperCase()}*\n` +
-      `⏳ *UPCOMING EXAMINATION NOTICE*\n` +
+      `📜 *STUDENT MARKSHEET (UPCOMING)*\n` +
       `🎯 *Exam:* ${exam.examName.toUpperCase()} (${exam.academicYear || '2026-27'})\n` +
-      `📅 *Date of Exam:* ${exam.date}\n` +
       `───────────────────────\n` +
-      `👤 *Student Name:* ${student.name}\n` +
+      `👤 *Student Name:* ${student.name.toUpperCase()}\n` +
       `🆔 *Roll Number:* #${student.rollNo}\n` +
-      `📚 *Class:* ${className}\n` +
-      `👨‍👧 *Father's Name:* ${student.fatherName || 'N/A'}\n` +
+      `📚 *Class:* ${displayClass}\n` +
+      `👨👧 *Father's Name:* ${student.fatherName ? student.fatherName.toUpperCase() : 'N/A'}\n` +
       `───────────────────────\n` +
       `📋 *EXAMINATION SUBJECTS:*\n` +
       `${subjectList}\n` +
       `───────────────────────\n` +
-      `🔔 *STATUS:* Upcoming / Examination Scheduled\n` +
-      `• *Remarks:* "${result.remarks}"\n` +
+      `🔔 *STATUS:* Upcoming Examination Scheduled\n` +
+      `• *Exam Date:* ${exam.date}\n` +
       `───────────────────────\n` +
-      `🌟 _Official Marksheet Document Issued by Govt. Sr. Sec. School, Sanwaloda Purohitan, Sikar (RBSE)_`
+      `📄 _Attached: Marksheet PDF_\n` +
+      `${directRollUrl}`
     );
   }
 
@@ -65,15 +106,22 @@ export function formatStudentMarksheetWhatsAppMessage(
     )
     .join('\n');
 
+  const statusBadge =
+    result.status === 'PASS' || result.status === 'PASSED'
+      ? '✅ PASS'
+      : result.status === 'GRACE' || result.status === 'COMPARTMENT'
+      ? '⚠️ GRACE'
+      : '❌ FAIL';
+
   return (
     `🏫 *${schoolName.toUpperCase()}*\n` +
-    `📜 *OFFICIAL STUDENT MARKSHEET & PERFORMANCE REPORT*\n` +
+    `📜 *STUDENT MARKSHEET*\n` +
     `🎯 *Exam:* ${exam.examName.toUpperCase()} (${exam.academicYear || '2026-27'})\n` +
     `───────────────────────\n` +
-    `👤 *Student Name:* ${student.name}\n` +
+    `👤 *Student Name:* ${student.name.toUpperCase()}\n` +
     `🆔 *Roll Number:* #${student.rollNo}\n` +
-    `📚 *Class:* ${className}\n` +
-    `👨‍👧 *Father's Name:* ${student.fatherName || 'N/A'}\n` +
+    `📚 *Class:* ${displayClass}\n` +
+    `👨👧 *Father's Name:* ${student.fatherName ? student.fatherName.toUpperCase() : 'N/A'}\n` +
     `───────────────────────\n` +
     `📊 *SUBJECT-WISE MARKS:*\n` +
     `${subjectLines}\n` +
@@ -82,11 +130,10 @@ export function formatStudentMarksheetWhatsAppMessage(
     `• *Total Marks:* ${result.totalObtainedMarks} / ${result.totalMaxMarks}\n` +
     `• *Percentage:* ${result.percentage}%\n` +
     `• *Class Rank:* #${result.rank} (out of ${result.totalStudentsInClass} students)\n` +
-    `• *Status:* ${result.status === 'PASS' || result.status === 'PASSED' ? '✅ PASS' : result.status === 'GRACE' || result.status === 'COMPARTMENT' ? '⚠️ GRACE' : '❌ FAIL'}\n` +
-    `• *Teacher Remarks:* "${result.remarks}"\n` +
+    `• *Status:* ${statusBadge}\n` +
     `───────────────────────\n` +
-    `📄 _Attached: 2-Page Official Marksheet & Term Progression PDF Document_\n` +
-    `🌟 _Govt. Sr. Sec. School, Sanwaloda Purohitan, Sikar (RBSE)_`
+    `📄 _Attached: Marksheet PDF_\n` +
+    `${directRollUrl}`
   );
 }
 
